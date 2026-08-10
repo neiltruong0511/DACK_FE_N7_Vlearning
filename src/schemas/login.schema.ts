@@ -1,0 +1,13 @@
+import { z } from "zod";
+
+export const loginSchema = z.object({
+  taiKhoan: z
+    .string()
+    .min(1, "Tài khoản không được để trống"),
+
+  matKhau: z
+    .string()
+    .min(6, "Mật khẩu phải từ 6 ký tự"),
+});
+
+export type LoginSchema = z.infer<typeof loginSchema>;
