@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRegisterCourse } from "@/hooks/useCourse";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -23,6 +23,14 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { Heart } from "lucide-react";
+
+import {
+  addFavoriteCourse,
+  removeFavoriteCourse,
+  isFavoriteCourse,
+} from "@/lib/favorite";
+
 import { useCourseDetail } from "@/hooks/useCourse";
 import CourseLoading from "@/components/common/CourseLoading";
 
@@ -38,6 +46,14 @@ export default function CourseDetail({ courseId }: Props) {
   const registerCourse = useRegisterCourse();
 
   const [registerMessage, setRegisterMessage] = useState("");
+
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  useEffect(() => {
+    if (!course?.maKhoaHoc) return;
+
+    setIsFavorite(isFavoriteCourse(course.maKhoaHoc));
+  }, [course?.maKhoaHoc]);
 
   const getImageUrl = (image?: string) => {
     if (!image) {
@@ -116,6 +132,18 @@ export default function CourseDetail({ courseId }: Props) {
         },
       },
     );
+  };
+
+  const handleFavorite = () => {
+    if (!course?.maKhoaHoc) return;
+
+    if (isFavorite) {
+      removeFavoriteCourse(course.maKhoaHoc);
+      setIsFavorite(false);
+    } else {
+      addFavoriteCourse(course.maKhoaHoc);
+      setIsFavorite(true);
+    }
   };
 
   return (
@@ -370,15 +398,33 @@ export default function CourseDetail({ courseId }: Props) {
         <aside className="lg:col-span-4">
           <div className="sticky top-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-100">
             {/* CTA Button */}
-            <button
-              onClick={handleRegisterCourse}
-              disabled={registerCourse.isPending}
-              className="w-full transform rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-800 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {registerCourse.isPending
-                ? "⏳ Đang đăng ký..."
-                : "🚀 Đăng ký học ngay"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={handleRegisterCourse}
+                disabled={registerCourse.isPending}
+                className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {registerCourse.isPending
+                  ? "⏳ Đang đăng ký..."
+                  : "🚀 Đăng ký học ngay"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleFavorite}
+                title={isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
+                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border transition ${
+                  isFavorite
+                    ? "border-red-200 bg-red-50 text-red-500"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
+                }`}
+              >
+                <Heart
+                  className="h-6 w-6"
+                  fill={isFavorite ? "currentColor" : "none"}
+                />
+              </button>
+            </div>
 
             <div className="my-6 border-t border-slate-100" />
 

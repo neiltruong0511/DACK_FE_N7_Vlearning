@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCoursePagination } from "@/hooks/useCourse";
 import CourseCard from "./CourseCard";
 import CourseLoading from "@/components/common/CourseLoading";
+import { Link } from "lucide-react";
 
 export default function CourseList() {
   const [page, setPage] = useState(1);
@@ -54,10 +55,6 @@ export default function CourseList() {
             </div>
           </div>
         </div>
-
-        <button className="rounded-2xl bg-blue-600 px-8 py-4 font-semibold text-white shadow-xl shadow-blue-500/20 transition hover:-translate-y-1 hover:bg-blue-700">
-          Khám phá tất cả →
-        </button>
       </div>
 
       {/* Grid */}

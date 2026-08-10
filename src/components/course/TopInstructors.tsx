@@ -110,7 +110,9 @@ export default function TopInstructors() {
               EXPERT MENTORS
             </p>
 
-            <h2 className="mt-2 text-5xl font-black">Giảng viên hàng đầu</h2>
+            <h2 className="mt-2 text-5xl font-black font-bold">
+              Giảng viên hàng đầu
+            </h2>
           </div>
 
           {/* Arrow */}
