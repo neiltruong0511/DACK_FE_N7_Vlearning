@@ -7,19 +7,23 @@ import {
   BookOpen,
   PlayCircle,
   XCircle,
+  AlertTriangle,
   ArrowRight,
   GraduationCap,
   CheckCircle2,
 } from "lucide-react";
 
 import { useCourses, useCancelEnrollment } from "@/hooks/useCourse";
+import { useToast } from "@/components/common/ToastProvider";
 
 export default function MyCoursesPage() {
   const { data: courses, isLoading } = useCourses();
   const cancelEnrollment = useCancelEnrollment();
+  const toast = useToast();
 
   const [myCourseIds, setMyCourseIds] = useState<string[]>([]);
   const [keyword, setKeyword] = useState("");
+  const [courseToCancel, setCourseToCancel] = useState<any>(null);
 
   // =========================
   // LẤY KHÓA HỌC ĐÃ ĐĂNG KÝ
@@ -86,7 +90,7 @@ export default function MyCoursesPage() {
     const userInfo = localStorage.getItem("USER_INFO");
 
     if (!userInfo) {
-      alert("Vui lòng đăng nhập lại!");
+      toast.error("Vui lòng đăng nhập lại!");
       return;
     }
 
@@ -95,20 +99,41 @@ export default function MyCoursesPage() {
     try {
       user = JSON.parse(userInfo);
     } catch {
-      alert("Thông tin tài khoản không hợp lệ!");
+      toast.error("Thông tin tài khoản không hợp lệ!");
       return;
     }
 
     if (!user?.taiKhoan) {
-      alert("Không tìm thấy tài khoản!");
+      toast.error("Không tìm thấy tài khoản!");
       return;
     }
 
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn hủy khóa học "${course.tenKhoaHoc}" không?`,
-    );
+    setCourseToCancel(course);
+  };
 
-    if (!confirmed) return;
+  const confirmCancelCourse = () => {
+    const course = courseToCancel;
+    if (!course) return;
+
+    setCourseToCancel(null);
+    const userInfo = localStorage.getItem("USER_INFO");
+    if (!userInfo) {
+      toast.error("Vui lòng đăng nhập lại!");
+      return;
+    }
+
+    let user;
+    try {
+      user = JSON.parse(userInfo);
+    } catch {
+      toast.error("Thông tin tài khoản không hợp lệ!");
+      return;
+    }
+
+    if (!user?.taiKhoan) {
+      toast.error("Không tìm thấy tài khoản!");
+      return;
+    }
 
     cancelEnrollment.mutate(
       {
@@ -125,7 +150,7 @@ export default function MyCoursesPage() {
 
           localStorage.setItem("MY_COURSES", JSON.stringify(updatedCourses));
 
-          alert("Hủy khóa học thành công!");
+          toast.success("Hủy khóa học thành công!");
         },
 
         onError: (error: any) => {
@@ -137,7 +162,7 @@ export default function MyCoursesPage() {
             error.response?.data?.message ||
             "Không thể hủy khóa học!";
 
-          alert(message);
+          toast.error(message);
         },
       },
     );
@@ -348,6 +373,34 @@ export default function MyCoursesPage() {
           </div>
         )}
       </div>
+
+      {courseToCancel && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[2px]">
+          <div role="dialog" aria-modal="true" aria-labelledby="cancel-course-title" className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div className="flex items-center gap-4 border-b border-slate-100 px-6 py-5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 id="cancel-course-title" className="text-lg font-black text-slate-900">Hủy khóa học?</h2>
+                <p className="mt-0.5 text-xs text-slate-500">Xác nhận trước khi thay đổi danh sách học tập</p>
+              </div>
+            </div>
+
+            <div className="px-6 py-5">
+              <p className="text-sm leading-6 text-slate-600">
+                Bạn sắp hủy đăng ký khóa học <strong className="text-slate-900">{courseToCancel.tenKhoaHoc}</strong>.
+              </p>
+              <p className="mt-2 text-xs leading-5 text-slate-400">Bạn có thể đăng ký lại khóa học này sau.</p>
+            </div>
+
+            <div className="flex gap-3 bg-slate-50 px-6 py-4">
+              <button type="button" onClick={() => setCourseToCancel(null)} className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100">Giữ lại</button>
+              <button type="button" onClick={confirmCancelCourse} disabled={cancelEnrollment.isPending} className="flex-1 rounded-xl bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60">{cancelEnrollment.isPending ? "Đang xử lý..." : "Xác nhận hủy"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

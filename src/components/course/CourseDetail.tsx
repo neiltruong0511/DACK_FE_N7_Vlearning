@@ -33,6 +33,7 @@ import {
 
 import { useCourseDetail } from "@/hooks/useCourse";
 import CourseLoading from "@/components/common/CourseLoading";
+import { useToast } from "@/components/common/ToastProvider";
 
 interface Props {
   courseId: string;
@@ -40,6 +41,7 @@ interface Props {
 
 export default function CourseDetail({ courseId }: Props) {
   const router = useRouter();
+  const toast = useToast();
 
   const { data: course, isLoading, error } = useCourseDetail(courseId);
 
@@ -84,7 +86,7 @@ export default function CourseDetail({ courseId }: Props) {
     const userInfo = localStorage.getItem("USER_INFO");
 
     if (!userInfo) {
-      alert("Vui lòng đăng nhập để đăng ký khóa học!");
+      toast.error("Vui lòng đăng nhập để đăng ký khóa học!");
       router.push("/login");
       return;
     }
@@ -96,12 +98,12 @@ export default function CourseDetail({ courseId }: Props) {
     console.log("taiKhoan:", user.taiKhoan);
 
     if (!user.taiKhoan) {
-      alert("Không tìm thấy thông tin tài khoản!");
+      toast.error("Không tìm thấy thông tin tài khoản!");
       return;
     }
 
     if (!course?.maKhoaHoc) {
-      alert("Không tìm thấy mã khóa học!");
+      toast.error("Không tìm thấy mã khóa học!");
       return;
     }
 
@@ -122,13 +124,13 @@ export default function CourseDetail({ courseId }: Props) {
 
           localStorage.setItem("MY_COURSES", JSON.stringify(myCourses));
 
-          alert("Đăng ký khóa học thành công!");
+          toast.success("Đăng ký khóa học thành công!");
 
           router.push("/my-courses");
         },
         onError: (error) => {
           console.error(error);
-          alert("Đăng ký khóa học thất bại!");
+          toast.error("Đăng ký khóa học thất bại!");
         },
       },
     );

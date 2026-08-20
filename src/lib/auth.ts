@@ -18,7 +18,12 @@ export const getUser = (): UserInfo | null => {
 
   if (!user) return null;
 
-  return JSON.parse(user);
+  try {
+    return JSON.parse(user);
+  } catch {
+    localStorage.removeItem("USER_INFO");
+    return null;
+  }
 };
 
 export const getToken = () => {
@@ -29,4 +34,5 @@ export const getToken = () => {
 
 export const logout = () => {
   localStorage.removeItem("ACCESS_TOKEN");
+  localStorage.removeItem("USER_INFO");
 };

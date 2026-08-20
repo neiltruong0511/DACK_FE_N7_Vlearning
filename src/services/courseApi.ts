@@ -88,5 +88,36 @@ export const courseApi = {
     });
   },
 
-  
+  addCourse(data: Record<string, unknown>) {
+    return axiosClient.post("/QuanLyKhoaHoc/ThemKhoaHoc", data);
+  },
+
+  updateCourse(data: Record<string, unknown>) {
+    return axiosClient.put("/QuanLyKhoaHoc/CapNhatKhoaHoc", data);
+  },
+
+  deleteCourse(maKhoaHoc: string) {
+    return axiosClient.delete("/QuanLyKhoaHoc/XoaKhoaHoc", {
+      params: { MaKhoaHoc: maKhoaHoc },
+    });
+  },
+
+  uploadCourseImage(data: FormData) {
+    return axiosClient.post("/QuanLyKhoaHoc/UploadHinhAnhKhoaHoc", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  addCourseWithImage(data: FormData) {
+    return axiosClient.post("/QuanLyKhoaHoc/ThemKhoaHocUploadHinh", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
+  updateCourseWithImage(data: FormData) {
+    return axiosClient.post("/QuanLyKhoaHoc/CapNhatKhoaHocUpload", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+
 };

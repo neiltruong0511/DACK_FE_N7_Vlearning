@@ -5,9 +5,9 @@ import { useSearchCourse } from "@/hooks/useCourse";
 import SearchHero from "@/components/search/SearchHero";
 import SearchSidebar from "@/components/search/SearchSidebar";
 import SearchCard from "@/components/search/SearchCard";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-export default function SearchPage() {
+function SearchContent() {
   const searchParams = useSearchParams();
 
   const keyword = searchParams.get("keyword") || "";
@@ -19,13 +19,13 @@ export default function SearchPage() {
   if (isLoading) {
     return <section className="py-20 text-center">Đang tìm kiếm...</section>;
   }
-  const categories = [
+  const categories: string[] = [
     "Tất cả",
     ...Array.from(
       new Set(
         (data ?? []).map((item: any) => item.danhMucKhoaHoc?.tenDanhMucKhoaHoc),
       ),
-    ),
+    ).filter((item): item is string => Boolean(item)),
   ];
   const filteredCourses =
     category === "Tất cả"
@@ -67,5 +67,13 @@ export default function SearchPage() {
         </div>
       </div>
     </section>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<section className="py-20 text-center">Đang tải tìm kiếm...</section>}>
+      <SearchContent />
+    </Suspense>
   );
 }

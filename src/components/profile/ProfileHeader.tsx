@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Camera, Trash2 } from "lucide-react";
+import { useToast } from "@/components/common/ToastProvider";
 
 interface User {
   taiKhoan: string;
@@ -15,6 +16,7 @@ interface User {
 const MAX_SIZE = 100 * 1024 * 1024; // 100MB
 
 export default function ProfileHeader() {
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<User | null>(null);
@@ -63,13 +65,13 @@ export default function ProfileHeader() {
 
     // Kiểm tra loại file
     if (!file.type.startsWith("image/")) {
-      alert("Vui lòng chọn file hình ảnh!");
+      toast.error("Vui lòng chọn file hình ảnh!");
       return;
     }
 
     // Kiểm tra dung lượng
     if (file.size > MAX_SIZE) {
-      alert("Ảnh phải nhỏ hơn hoặc bằng 100MB!");
+      toast.error("Ảnh phải nhỏ hơn hoặc bằng 100MB!");
       return;
     }
 
