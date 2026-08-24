@@ -4,6 +4,7 @@ import Link from "next/link";
 import { User, Mail, Lock, ShieldCheck, GraduationCap } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/common/ToastProvider";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { registerSchema, RegisterSchema } from "@/schemas/register.schema";
@@ -11,6 +12,7 @@ import { registerSchema, RegisterSchema } from "@/schemas/register.schema";
 import { useRegister } from "@/hooks/useAuth";
 
 export default function RegisterForm() {
+  const toast = useToast();
   const {
     register,
     handleSubmit,
@@ -33,7 +35,7 @@ export default function RegisterForm() {
 
       const res = await registerMutation.mutateAsync(payload);
 
-      alert("Đăng ký thành công!");
+      toast.success("Đăng ký tài khoản thành công!");
 
       console.log(res);
 
@@ -41,7 +43,7 @@ export default function RegisterForm() {
     } catch (err: any) {
       console.log(err);
 
-      alert(err.response?.data?.content || "Đăng ký thất bại");
+      toast.error(err.response?.data?.content || "Đăng ký thất bại");
     }
   };
 

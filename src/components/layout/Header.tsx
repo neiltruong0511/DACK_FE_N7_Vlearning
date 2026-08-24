@@ -23,31 +23,38 @@ export default function Header() {
   const [openMenu, setOpenMenu] = useState(false);
 
   // =====================================================
-  // LOAD USER + AVATAR RIÊNG THEO TÀI KHOẢN
+  // LOAD USER + AVATAR
   // =====================================================
+
   useEffect(() => {
     const loadUser = () => {
       try {
         const userInfo = localStorage.getItem("USER_INFO");
 
-        // Không có user
+        // ==========================================
+        // CHƯA ĐĂNG NHẬP
+        // ==========================================
+
         if (!userInfo) {
           setUser(null);
           setAvatar("");
           setOpenMenu(false);
+
           return;
         }
+
+        // ==========================================
+        // ĐÃ ĐĂNG NHẬP
+        // ==========================================
 
         const parsedUser: UserInfo = JSON.parse(userInfo);
 
         setUser(parsedUser);
 
-        // -----------------------------------------------
-        // Lấy avatar riêng của từng tài khoản
-        // Ví dụ:
-        // AVATAR_student01
-        // AVATAR_admin01
-        // -----------------------------------------------
+        // ==========================================
+        // AVATAR RIÊNG THEO TÀI KHOẢN
+        // ==========================================
+
         if (parsedUser.taiKhoan) {
           const avatarKey = `AVATAR_${parsedUser.taiKhoan}`;
 
@@ -68,7 +75,10 @@ export default function Header() {
     // Load lần đầu
     loadUser();
 
-    // Khi ProfileHeader upload/xóa avatar
+    // ==========================================
+    // LẮNG NGHE THAY ĐỔI USER
+    // ==========================================
+
     window.addEventListener("userUpdated", loadUser);
 
     return () => {
@@ -79,6 +89,7 @@ export default function Header() {
   // =====================================================
   // SEARCH
   // =====================================================
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -92,36 +103,63 @@ export default function Header() {
   // =====================================================
   // LOGOUT
   // =====================================================
+
   const handleLogout = () => {
     /*
-      QUAN TRỌNG:
+      KHÔNG XÓA:
 
-      Không xóa:
       AVATAR_taiKhoan
 
-      Vì avatar phải được giữ lại cho lần đăng nhập sau.
-
-      Chỉ xóa thông tin phiên hiện tại.
+      Vì avatar phải được giữ lại
+      cho lần đăng nhập sau.
     */
+
+    // ==========================================
+    // XÓA PHIÊN ĐĂNG NHẬP
+    // ==========================================
 
     localStorage.removeItem("ACCESS_TOKEN");
     localStorage.removeItem("USER_INFO");
+
+    // ==========================================
+    // 🔥 XÓA TOÀN BỘ KHÓA HỌC YÊU THÍCH
+    // ==========================================
+
+    localStorage.removeItem("FAVORITE_COURSES");
+
+    // ==========================================
+    // CẬP NHẬT HEADER NGAY LẬP TỨC
+    // ==========================================
 
     setUser(null);
     setAvatar("");
     setOpenMenu(false);
 
-    // Thông báo cho các component khác
+    // ==========================================
+    // 🔥 THÔNG BÁO CHO CÁC COMPONENT KHÁC
+    //
+    // CourseCard sẽ nhận event này
+    // và setFavoriteIds([])
+    // ==========================================
+
     window.dispatchEvent(new Event("userUpdated"));
 
+    // ==========================================
+    // VỀ TRANG CHỦ
+    // ==========================================
+
     router.push("/");
-    router.refresh();
   };
 
   // =====================================================
   // AVATAR FALLBACK
   // =====================================================
+
   const avatarLetter = user?.hoTen?.trim()?.charAt(0)?.toUpperCase() || "U";
+
+  // =====================================================
+  // RENDER
+  // =====================================================
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200/70 bg-white/90 backdrop-blur-xl">
@@ -129,6 +167,7 @@ export default function Header() {
         {/* =====================================================
             LOGO
         ===================================================== */}
+
         <Link
           href="/"
           className="flex min-w-[230px] items-center gap-3 transition hover:opacity-90"
@@ -151,6 +190,7 @@ export default function Header() {
         {/* =====================================================
             SEARCH
         ===================================================== */}
+
         <form
           onSubmit={handleSearch}
           className="hidden flex-1 justify-center lg:flex"
@@ -173,8 +213,10 @@ export default function Header() {
         {/* =====================================================
             NAVIGATION
         ===================================================== */}
+
         <nav className="hidden items-center gap-10 lg:flex">
-          {/* Danh mục */}
+          {/* DANH MỤC */}
+
           <div className="group relative">
             <button
               type="button"
@@ -186,7 +228,8 @@ export default function Header() {
             <CategoryDropdown />
           </div>
 
-          {/* Khóa học */}
+          {/* KHÓA HỌC */}
+
           <Link
             href="/courses"
             className="font-semibold text-gray-700 transition hover:text-blue-600"
@@ -194,7 +237,8 @@ export default function Header() {
             Khóa học
           </Link>
 
-          {/* Blog */}
+          {/* BLOG */}
+
           <Link
             href="/blog"
             className="font-semibold text-gray-700 transition hover:text-blue-600"
@@ -206,11 +250,13 @@ export default function Header() {
         {/* =====================================================
             USER
         ===================================================== */}
+
         <div className="hidden items-center md:flex">
           {!user ? (
             // =================================================
             // CHƯA ĐĂNG NHẬP
             // =================================================
+
             <div className="flex items-center gap-3">
               <Link
                 href="/login"
@@ -230,7 +276,10 @@ export default function Header() {
             // =================================================
             // ĐÃ ĐĂNG NHẬP
             // =================================================
+
             <div className="relative">
+              {/* USER BUTTON */}
+
               <button
                 type="button"
                 onClick={() => setOpenMenu((prev) => !prev)}
@@ -239,6 +288,7 @@ export default function Header() {
                 {/* =================================================
                     AVATAR
                 ================================================= */}
+
                 <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white shadow">
                   {avatar ? (
                     <img
@@ -246,7 +296,6 @@ export default function Header() {
                       alt={user.hoTen || "Avatar"}
                       className="h-full w-full object-cover"
                       onError={(e) => {
-                        // Nếu URL ảnh lỗi
                         e.currentTarget.style.display = "none";
 
                         const fallback = e.currentTarget
@@ -260,6 +309,7 @@ export default function Header() {
                   ) : null}
 
                   {/* FALLBACK */}
+
                   <div
                     className={`${
                       avatar ? "hidden" : "flex"
@@ -272,6 +322,7 @@ export default function Header() {
                 {/* =================================================
                     USER NAME
                 ================================================= */}
+
                 <div className="text-left">
                   <p className="text-xs font-bold text-blue-600">Xin chào,</p>
 
@@ -284,9 +335,11 @@ export default function Header() {
               {/* =================================================
                   DROPDOWN
               ================================================= */}
+
               {openMenu && (
                 <div className="absolute right-0 mt-4 w-72 overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl">
                   {/* DROPDOWN HEADER */}
+
                   <div className="bg-gradient-to-r from-blue-50 to-cyan-50 px-6 py-5">
                     <p className="text-xs uppercase tracking-wide text-gray-500">
                       Đăng nhập với
@@ -302,8 +355,10 @@ export default function Header() {
                   </div>
 
                   {/* MENU */}
+
                   <div className="p-2">
                     {/* PROFILE */}
+
                     <Link
                       href="/profile"
                       onClick={() => setOpenMenu(false)}
@@ -314,6 +369,7 @@ export default function Header() {
                     </Link>
 
                     {/* MY COURSES */}
+
                     {user.maLoaiNguoiDung === "HV" && (
                       <Link
                         href="/my-courses"
@@ -326,6 +382,7 @@ export default function Header() {
                     )}
 
                     {/* ADMIN */}
+
                     {user.maLoaiNguoiDung === "GV" && (
                       <Link
                         href="/admin/dashboard"
@@ -339,7 +396,10 @@ export default function Header() {
 
                     <div className="my-2 border-t border-slate-200" />
 
-                    {/* LOGOUT */}
+                    {/* =================================================
+                        LOGOUT
+                    ================================================= */}
+
                     <button
                       type="button"
                       onClick={handleLogout}
@@ -358,6 +418,7 @@ export default function Header() {
         {/* =====================================================
             MOBILE
         ===================================================== */}
+
         <button
           type="button"
           className="rounded-xl p-2 transition hover:bg-gray-100 lg:hidden"

@@ -2,8 +2,10 @@ import { courseApi } from "@/services/courseApi";
 import {
   useMutation,
   useQuery,
+  useInfiniteQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+
 
 // =========================
 // LẤY TẤT CẢ KHÓA HỌC
@@ -145,3 +147,36 @@ export const useCancelEnrollment = () => {
   });
 };
 
+
+// Load more
+export const useCourseLoadMore = () => {
+  return useInfiniteQuery({
+    queryKey: ["courses", "load-more"],
+
+    initialPageParam: 1,
+
+    queryFn: async ({ pageParam }) => {
+      const res = await courseApi.getCoursePagination(
+        pageParam,
+        8
+      );
+
+      console.log("Load more page:", pageParam, res.data);
+
+      return res.data;
+    },
+
+    getNextPageParam: (lastPage, allPages) => {
+      const totalPages =
+        lastPage?.totalPages ||
+        lastPage?.totalPagesCount ||
+        lastPage?.totalPage;
+
+      if (totalPages && allPages.length >= totalPages) {
+        return undefined;
+      }
+
+      return allPages.length + 1;
+    },
+  });
+};

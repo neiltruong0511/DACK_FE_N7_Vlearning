@@ -2,55 +2,211 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { BookOpen, Heart, Search, Star, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  BookOpen,
+  Heart,
+  Search,
+  Star,
+  Users,
+  Loader2,
+  ChevronDown,
+} from "lucide-react";
 
-import { useCourses } from "@/hooks/useCourse";
+import { useCoursePagination } from "@/hooks/useCourse";
 import {
   addFavoriteCourse,
   removeFavoriteCourse,
   isFavoriteCourse,
 } from "@/lib/favorite";
 
+import { useToast } from "@/components/common/ToastProvider";
+
+const PAGE_SIZE = 8;
+
 export default function CoursesPage() {
-  const { data: courses, isLoading, error } = useCourses();
+  const toast = useToast();
+
+  // =========================
+  // PAGINATION / LOAD MORE
+  // =========================
+
+  const [page, setPage] = useState(1);
+
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+
+  const [hasMore, setHasMore] = useState(true);
+
+  // =========================
+  // SEARCH
+  // =========================
 
   const [keyword, setKeyword] = useState("");
 
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+  // =========================
+  // FAVORITE
+  // =========================
+
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+
+  // =========================
+  // LOAD FAVORITES
+  // =========================
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
     const stored = localStorage.getItem("FAVORITE_COURSES");
 
-    if (!stored) return [];
+    if (!stored) {
+      setFavoriteIds([]);
+      return;
+    }
 
     try {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+
+      if (Array.isArray(parsed)) {
+        setFavoriteIds(parsed);
+      } else {
+        setFavoriteIds([]);
+      }
     } catch {
-      return [];
+      setFavoriteIds([]);
     }
-  });
+  }, []);
 
   // =========================
-  // TÌM KIẾM
+  // CHECK LOGIN
   // =========================
+
+  const isLoggedIn = () => {
+    if (typeof window === "undefined") return false;
+
+    const token = localStorage.getItem("ACCESS_TOKEN");
+    const userInfo = localStorage.getItem("USER_INFO");
+
+    return !!token && !!userInfo;
+  };
+
+  // =========================
+  // PAGINATION API
+  // =========================
+
+  const {
+    data: paginationData,
+    isLoading,
+    isFetching,
+    error,
+  } = useCoursePagination(page, PAGE_SIZE);
+
+  // =========================
+  // XỬ LÝ DATA PAGINATION
+  // =========================
+
+  useEffect(() => {
+    if (!paginationData) return;
+    const newCourses =
+      paginationData?.items ||
+      paginationData?.content?.items ||
+      paginationData?.content ||
+      [];
+
+    if (!Array.isArray(newCourses)) {
+      return;
+    }
+
+    // =========================
+    // PAGE 1
+    // =========================
+
+    if (page === 1) {
+      setAllCourses(newCourses);
+    } else {
+      // =========================
+      // PAGE > 1
+      // =========================
+
+      setAllCourses((prev) => {
+        const existingIds = new Set(prev.map((course) => course.maKhoaHoc));
+
+        const uniqueCourses = newCourses.filter(
+          (course: any) => !existingIds.has(course.maKhoaHoc),
+        );
+
+        return [...prev, ...uniqueCourses];
+      });
+    }
+
+    // =========================
+    // CHECK CÒN DỮ LIỆU KHÔNG
+    // =========================
+
+    const totalPages =
+      paginationData?.totalPages || paginationData?.content?.totalPages;
+
+    const totalCount =
+      paginationData?.totalCount || paginationData?.content?.totalCount;
+
+    // Nếu API trả totalPages
+    if (totalPages) {
+      setHasMore(page < totalPages);
+      return;
+    }
+
+    // Nếu API trả totalCount
+    if (totalCount) {
+      const currentTotal = page * PAGE_SIZE;
+
+      setHasMore(currentTotal < totalCount);
+      return;
+    }
+
+    // Nếu không có metadata thì dựa vào số item
+    setHasMore(newCourses.length === PAGE_SIZE);
+  }, [paginationData, page]);
+
+  // =========================
+  // LOAD MORE
+  // =========================
+
+  const handleLoadMore = () => {
+    if (isFetching || !hasMore) return;
+
+    setPage((prev) => prev + 1);
+  };
+
+  // =========================
+  // SEARCH
+  // =========================
+
   const filteredCourses = useMemo(() => {
-    if (!courses) return [];
-
     const search = keyword.trim().toLowerCase();
 
     if (!search) {
-      return courses;
+      return allCourses;
     }
 
-    return courses.filter((course: any) =>
-      course.tenKhoaHoc?.toLowerCase().includes(search),
-    );
-  }, [courses, keyword]);
+    return allCourses.filter((course: any) => {
+      const name = course.tenKhoaHoc?.toLowerCase() || "";
+
+      const description = course.moTa?.toLowerCase() || "";
+
+      const category =
+        course.danhMucKhoaHoc?.tenDanhMucKhoaHoc?.toLowerCase() || "";
+
+      return (
+        name.includes(search) ||
+        description.includes(search) ||
+        category.includes(search)
+      );
+    });
+  }, [allCourses, keyword]);
 
   // =========================
-  // YÊU THÍCH
+  // FAVORITE
   // =========================
+
   const handleFavorite = (
     e: React.MouseEvent<HTMLButtonElement>,
     courseId: string,
@@ -58,26 +214,53 @@ export default function CoursesPage() {
     e.preventDefault();
     e.stopPropagation();
 
+    if (!courseId) return;
+
+    // =========================
+    // CHƯA ĐĂNG NHẬP
+    // =========================
+
+    if (!isLoggedIn()) {
+      toast.error("Vui lòng đăng nhập để thêm khóa học vào yêu thích!");
+
+      return;
+    }
+
+    // =========================
+    // REMOVE
+    // =========================
+
     if (isFavoriteCourse(courseId)) {
       removeFavoriteCourse(courseId);
 
       setFavoriteIds((prev) => prev.filter((id) => id !== courseId));
-    } else {
-      addFavoriteCourse(courseId);
 
-      setFavoriteIds((prev) => {
-        if (prev.includes(courseId)) {
-          return prev;
-        }
+      toast.success("Đã xóa khỏi danh sách yêu thích!");
 
-        return [...prev, courseId];
-      });
+      return;
     }
+
+    // =========================
+    // ADD
+    // =========================
+
+    addFavoriteCourse(courseId);
+
+    setFavoriteIds((prev) => {
+      if (prev.includes(courseId)) {
+        return prev;
+      }
+
+      return [...prev, courseId];
+    });
+
+    toast.success("Đã thêm vào danh sách yêu thích!");
   };
 
   // =========================
   // IMAGE
   // =========================
+
   const getImageUrl = (image?: string) => {
     if (!image) {
       return "/placeholder.jpg";
@@ -91,29 +274,42 @@ export default function CoursesPage() {
   };
 
   // =========================
-  // LOADING
+  // INITIAL LOADING
   // =========================
-  if (isLoading) {
+
+  if (isLoading && page === 1) {
     return (
       <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <div className="h-10 w-64 animate-pulse rounded-lg bg-slate-200" />
+          {/* Header Skeleton */}
+          <div>
+            <div className="h-5 w-24 animate-pulse rounded bg-slate-200" />
 
-          <div className="mt-3 h-5 w-96 max-w-full animate-pulse rounded bg-slate-200" />
+            <div className="mt-3 h-10 w-64 animate-pulse rounded-lg bg-slate-200" />
 
-          <div className="mt-8 h-12 animate-pulse rounded-xl bg-slate-200" />
+            <div className="mt-3 h-5 w-96 max-w-full animate-pulse rounded bg-slate-200" />
+          </div>
 
+          {/* Search Skeleton */}
+          <div className="mt-8 h-13 animate-pulse rounded-2xl bg-slate-200" />
+
+          {/* Courses Skeleton */}
           <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <div key={item} className="overflow-hidden rounded-2xl bg-white">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div
+                key={index}
+                className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+              >
                 <div className="aspect-[16/10] animate-pulse bg-slate-200" />
 
                 <div className="space-y-3 p-4">
-                  <div className="h-4 w-20 animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
 
-                  <div className="h-10 animate-pulse rounded bg-slate-200" />
+                  <div className="h-12 animate-pulse rounded bg-slate-200" />
 
-                  <div className="h-4 w-1/2 animate-pulse rounded bg-slate-200" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+
+                  <div className="h-10 animate-pulse rounded-xl bg-slate-200" />
                 </div>
               </div>
             ))}
@@ -126,15 +322,27 @@ export default function CoursesPage() {
   // =========================
   // ERROR
   // =========================
-  if (error) {
+
+  if (error && page === 1) {
     return (
       <main className="flex min-h-[60vh] items-center justify-center bg-slate-50">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-red-500">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-red-50">
+            <Search className="h-6 w-6 text-red-500" />
+          </div>
+
+          <h1 className="mt-4 text-xl font-bold text-red-500">
             Không thể tải khóa học
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">Vui lòng thử lại sau.</p>
+
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Thử lại
+          </button>
         </div>
       </main>
     );
@@ -143,7 +351,10 @@ export default function CoursesPage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* ================= HEADER ================= */}
+        {/* =========================
+            HEADER
+        ========================= */}
+
         <section>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -152,7 +363,7 @@ export default function CoursesPage() {
                 Khóa học
               </div>
 
-              <h1 className="mt-2 text-3xl font-black font-bold tracking-tight text-slate-900 sm:text-4xl">
+              <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
                 Tất cả khóa học
               </h1>
 
@@ -167,7 +378,10 @@ export default function CoursesPage() {
           </div>
         </section>
 
-        {/* ================= SEARCH ================= */}
+        {/* =========================
+            SEARCH
+        ========================= */}
+
         <section className="mt-7">
           <div className="relative">
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -182,7 +396,10 @@ export default function CoursesPage() {
           </div>
         </section>
 
-        {/* ================= COURSE LIST ================= */}
+        {/* =========================
+            COURSE LIST
+        ========================= */}
+
         <section className="mt-8">
           {filteredCourses.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
@@ -193,104 +410,211 @@ export default function CoursesPage() {
               </h2>
 
               <p className="mt-2 text-sm text-slate-500">
-                Không có khóa học phù hợp với từ khóa "{keyword}".
+                {keyword
+                  ? `Không có khóa học phù hợp với từ khóa "${keyword}".`
+                  : "Hiện chưa có khóa học nào."}
               </p>
             </div>
           ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {filteredCourses.map((course: any) => {
-                const favorite = favoriteIds.includes(course.maKhoaHoc);
+            <>
+              {/* =========================
+                  GRID
+              ========================= */}
 
-                return (
-                  <article
-                    key={course.maKhoaHoc}
-                    className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
-                  >
-                    {/* IMAGE */}
-                    <Link
-                      href={`/courses/${course.maKhoaHoc}`}
-                      className="block"
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                {filteredCourses.map((course: any) => {
+                  const favorite = favoriteIds.includes(course.maKhoaHoc);
+
+                  return (
+                    <article
+                      key={course.maKhoaHoc}
+                      className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
                     >
-                      <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
-                        <Image
-                          src={getImageUrl(course.hinhAnh)}
-                          alt={course.tenKhoaHoc || "Khóa học"}
-                          fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                          className="object-cover transition duration-500 group-hover:scale-105"
-                        />
+                      {/* =========================
+                          IMAGE
+                      ========================= */}
 
-                        {/* OVERLAY */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-
-                        {/* FAVORITE */}
-                        <button
-                          type="button"
-                          onClick={(e) => handleFavorite(e, course.maKhoaHoc)}
-                          aria-label={
-                            favorite
-                              ? "Xóa khỏi yêu thích"
-                              : "Thêm vào yêu thích"
-                          }
-                          className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full shadow-sm backdrop-blur transition hover:scale-110 ${
-                            favorite
-                              ? "bg-red-50 text-red-500"
-                              : "bg-white/90 text-slate-600 hover:bg-red-50 hover:text-red-500"
-                          }`}
-                        >
-                          <Heart
-                            className="h-4 w-4"
-                            fill={favorite ? "currentColor" : "none"}
-                          />
-                        </button>
-
-                        {/* CATEGORY */}
-                        <span className="absolute bottom-3 left-3 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white">
-                          {course.danhMucKhoaHoc?.tenDanhMucKhoaHoc ||
-                            "Khóa học"}
-                        </span>
-                      </div>
-                    </Link>
-
-                    {/* CONTENT */}
-                    <div className="p-4">
-                      <h2 className="line-clamp-2 min-h-[48px] text-base font-bold leading-6 text-slate-900 transition group-hover:text-blue-600">
-                        {course.tenKhoaHoc}
-                      </h2>
-
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">
-                        {course.moTa || "Khóa học trực tuyến chất lượng cao."}
-                      </p>
-
-                      {/* META */}
-                      <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-
-                          <span className="text-sm font-bold text-slate-800">
-                            4.9
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1 text-xs text-slate-500">
-                          <Users className="h-3.5 w-3.5" />
-
-                          {course.luotXem || 0}
-                        </div>
-                      </div>
-
-                      {/* DETAIL */}
                       <Link
                         href={`/courses/${course.maKhoaHoc}`}
-                        className="mt-4 flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600"
+                        className="block"
                       >
-                        Xem khóa học
+                        <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+                          <Image
+                            src={getImageUrl(course.hinhAnh)}
+                            alt={course.tenKhoaHoc || "Khóa học"}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                            className="object-cover transition duration-500 group-hover:scale-105"
+                          />
+
+                          {/* Overlay */}
+
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+
+                          {/* =========================
+                              FAVORITE
+                          ========================= */}
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleFavorite(e, course.maKhoaHoc)}
+                            aria-label={
+                              favorite
+                                ? "Xóa khỏi yêu thích"
+                                : "Thêm vào yêu thích"
+                            }
+                            className={`absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full shadow-sm backdrop-blur transition hover:scale-110 ${
+                              favorite
+                                ? "bg-red-50 text-red-500"
+                                : "bg-white/90 text-slate-600 hover:bg-red-50 hover:text-red-500"
+                            }`}
+                          >
+                            <Heart
+                              className="h-4 w-4"
+                              fill={favorite ? "currentColor" : "none"}
+                            />
+                          </button>
+
+                          {/* CATEGORY */}
+
+                          <span className="absolute bottom-3 left-3 rounded-lg bg-blue-600 px-2.5 py-1 text-[11px] font-bold text-white">
+                            {course.danhMucKhoaHoc?.tenDanhMucKhoaHoc ||
+                              "Khóa học"}
+                          </span>
+                        </div>
                       </Link>
+
+                      {/* =========================
+                          CONTENT
+                      ========================= */}
+
+                      <div className="p-4">
+                        <h2 className="line-clamp-2 min-h-[48px] text-base font-bold leading-6 text-slate-900 transition group-hover:text-blue-600">
+                          {course.tenKhoaHoc}
+                        </h2>
+
+                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">
+                          {course.moTa || "Khóa học trực tuyến chất lượng cao."}
+                        </p>
+
+                        {/* META */}
+
+                        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+
+                            <span className="text-sm font-bold text-slate-800">
+                              4.9
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-xs text-slate-500">
+                            <Users className="h-3.5 w-3.5" />
+
+                            {course.luotXem || 0}
+                          </div>
+                        </div>
+
+                        {/* DETAIL */}
+
+                        <Link
+                          href={`/courses/${course.maKhoaHoc}`}
+                          className="mt-4 flex w-full items-center justify-center rounded-xl bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600"
+                        >
+                          Xem khóa học
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* =========================
+                  LOAD MORE
+              ========================= */}
+
+              {hasMore && !keyword && (
+                <div className="mt-10 flex justify-center">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={isFetching}
+                    className="group inline-flex min-w-[190px] items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isFetching ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Đang tải...
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-5 w-5 transition-transform group-hover:translate-y-1" />
+                        Xem thêm khóa học
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* =========================
+                  LOADING MORE SKELETON
+              ========================= */}
+
+              {isFetching && page > 1 && (
+                <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white"
+                    >
+                      <div className="aspect-[16/10] animate-pulse bg-slate-200" />
+
+                      <div className="space-y-3 p-4">
+                        <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+
+                        <div className="h-12 animate-pulse rounded bg-slate-200" />
+
+                        <div className="h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+
+                        <div className="h-10 animate-pulse rounded-xl bg-slate-200" />
+                      </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              )}
+
+              {/* =========================
+                  END
+              ========================= */}
+
+              {!hasMore && allCourses.length > 0 && !keyword && (
+                <div className="mt-10 text-center">
+                  <div className="mx-auto h-px max-w-xs bg-slate-200" />
+
+                  <p className="mt-4 text-sm font-medium text-slate-400">
+                    🎉 Bạn đã xem hết tất cả khóa học
+                  </p>
+                </div>
+              )}
+
+              {/* SEARCH NOTE */}
+
+              {keyword && (
+                <div className="mt-8 text-center">
+                  <p className="text-xs text-slate-400">
+                    Kết quả tìm kiếm trên {allCourses.length} khóa học đã tải.
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => setKeyword("")}
+                    className="mt-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                  >
+                    Xem lại tất cả khóa học
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

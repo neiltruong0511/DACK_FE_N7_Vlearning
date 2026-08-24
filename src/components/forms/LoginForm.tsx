@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { loginSchema, LoginSchema } from "@/schemas/login.schema";
 import { useLogin } from "@/hooks/useAuth";
 import { saveAuth } from "@/lib/auth";
+import { useToast } from "@/components/common/ToastProvider";
 
 export default function LoginForm() {
   const {
@@ -22,6 +23,7 @@ export default function LoginForm() {
 
   const loginMutation = useLogin();
   const router = useRouter();
+  const toast = useToast();
 
   const [showPassword, setShowPassword] = useState(false);
 
@@ -29,7 +31,7 @@ export default function LoginForm() {
     try {
       const res = await loginMutation.mutateAsync(data);
 
-      const user = res.data;
+      const user = res.data?.content || res.data;
 
       // Lấy thông tin user cũ để giữ avatar
       const oldUserJSON = localStorage.getItem("USER_INFO");
@@ -50,13 +52,22 @@ export default function LoginForm() {
         avatar: user.avatar || oldUser?.avatar || "",
       };
 
+      if (!userWithAvatar?.accessToken) {
+        throw new Error("API không trả về accessToken");
+      }
+
       saveAuth(userWithAvatar);
 
       // Sau khi đăng nhập GV cũng về trang chủ
       router.push("/");
       router.refresh();
     } catch (err: any) {
-      alert(err.response?.data?.content || "Đăng nhập thất bại");
+      const message =
+        err.response?.data?.content ||
+        err.response?.data?.message ||
+        err.message ||
+        "Đăng nhập thất bại";
+      toast.error(message);
     }
   };
 
