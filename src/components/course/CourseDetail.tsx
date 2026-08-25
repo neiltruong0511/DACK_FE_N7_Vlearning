@@ -2,11 +2,22 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRegisterCourse } from "@/hooks/useCourse";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+
+import { useRegisterCourse, useCourseDetail } from "@/hooks/useCourse";
+
+import {
+  addFavoriteCourse,
+  removeFavoriteCourse,
+  isFavoriteCourse,
+} from "@/lib/favorite";
+
+import { useToast } from "@/components/common/ToastProvider";
+import CourseLoading from "@/components/common/CourseLoading";
+
 import {
   ArrowLeft,
+  ArrowRight,
   Star,
   Users,
   BookOpen,
@@ -15,46 +26,51 @@ import {
   CheckCircle2,
   PlayCircle,
   Award,
-  Code2,
   HelpCircle,
   RefreshCw,
   Video,
   FileCode2,
   Sparkles,
+  Heart,
+  X,
+  LogIn,
+  ShieldCheck,
+  Bookmark,
 } from "lucide-react";
-
-import { Heart } from "lucide-react";
-
-import {
-  addFavoriteCourse,
-  removeFavoriteCourse,
-  isFavoriteCourse,
-} from "@/lib/favorite";
-
-import { useCourseDetail } from "@/hooks/useCourse";
-import CourseLoading from "@/components/common/CourseLoading";
-import { useToast } from "@/components/common/ToastProvider";
 
 interface Props {
   courseId: string;
 }
 
 export default function CourseDetail({ courseId }: Props) {
-  const router = useRouter();
   const toast = useToast();
 
   const { data: course, isLoading, error } = useCourseDetail(courseId);
 
   const registerCourse = useRegisterCourse();
 
-  const [registerMessage, setRegisterMessage] = useState("");
-
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // =========================================================
+  // POPUP
+  // =========================================================
+
+  const [showLoginPopup, setShowLoginPopup] = useState(false);
+
+  // Popup dùng cho hành động nào
+  const [loginAction, setLoginAction] = useState<
+    "register" | "favorite"
+  >("register");
+
+  // =========================================================
+  // ĐỒNG BỘ FAVORITE
+  // =========================================================
 
   useEffect(() => {
     if (!course?.maKhoaHoc) return;
 
     const userInfo = localStorage.getItem("USER_INFO");
+
     if (!userInfo) {
       setIsFavorite(false);
       return;
@@ -62,6 +78,46 @@ export default function CourseDetail({ courseId }: Props) {
 
     setIsFavorite(isFavoriteCourse(course.maKhoaHoc));
   }, [course?.maKhoaHoc]);
+
+  // =========================================================
+  // ESC ĐÓNG POPUP
+  // =========================================================
+
+  useEffect(() => {
+    if (!showLoginPopup) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowLoginPopup(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showLoginPopup]);
+
+  // =========================================================
+  // KHÓA SCROLL KHI POPUP MỞ
+  // =========================================================
+
+  useEffect(() => {
+    if (showLoginPopup) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showLoginPopup]);
+
+  // =========================================================
+  // IMAGE
+  // =========================================================
 
   const getImageUrl = (image?: string) => {
     if (!image) {
@@ -75,9 +131,167 @@ export default function CourseDetail({ courseId }: Props) {
     return `https://elearningnew.cybersoft.edu.vn/hinhanh/${image}`;
   };
 
+  // =========================================================
+  // MỞ POPUP LOGIN
+  // =========================================================
+
+  const openLoginPopup = (action: "register" | "favorite") => {
+    setLoginAction(action);
+    setShowLoginPopup(true);
+  };
+
+  // =========================================================
+  // ĐĂNG KÝ KHÓA HỌC
+  // =========================================================
+
+  const handleRegisterCourse = () => {
+    if (!course?.maKhoaHoc) {
+      toast.error("Không tìm thấy mã khóa học!");
+      return;
+    }
+
+    const userInfo = localStorage.getItem("USER_INFO");
+
+    // -------------------------------------------------------
+    // CHƯA LOGIN
+    // -------------------------------------------------------
+
+    if (!userInfo) {
+      openLoginPopup("register");
+      return;
+    }
+
+    // -------------------------------------------------------
+    // ĐÃ LOGIN
+    // -------------------------------------------------------
+
+    try {
+      const user = JSON.parse(userInfo);
+
+      if (!user.taiKhoan) {
+        toast.error("Không tìm thấy thông tin tài khoản!");
+        return;
+      }
+
+      registerCourse.mutate(
+        {
+          maKhoaHoc: course.maKhoaHoc,
+          taiKhoan: user.taiKhoan,
+        },
+        {
+          onSuccess: () => {
+            const stored = localStorage.getItem("MY_COURSES");
+
+            const myCourses: string[] = stored
+              ? JSON.parse(stored)
+              : [];
+
+            if (!myCourses.includes(course.maKhoaHoc)) {
+              myCourses.push(course.maKhoaHoc);
+            }
+
+            localStorage.setItem(
+              "MY_COURSES",
+              JSON.stringify(myCourses),
+            );
+
+            toast.success("Đăng ký khóa học thành công!");
+
+            window.dispatchEvent(
+              new Event("myCoursesUpdated"),
+            );
+
+            // Chuyển sang khóa học của tôi
+            window.location.href = "/my-courses";
+          },
+
+          onError: (error) => {
+            console.error(
+              "Lỗi đăng ký khóa học:",
+              error,
+            );
+
+            toast.error("Đăng ký khóa học thất bại!");
+          },
+        },
+      );
+    } catch (error) {
+      console.error(
+        "Không thể đọc USER_INFO:",
+        error,
+      );
+
+      toast.error("Thông tin đăng nhập không hợp lệ!");
+    }
+  };
+
+  // =========================================================
+  // YÊU THÍCH
+  // =========================================================
+
+  const handleFavorite = () => {
+    if (!course?.maKhoaHoc) return;
+
+    const userInfo = localStorage.getItem("USER_INFO");
+
+    // -------------------------------------------------------
+    // CHƯA LOGIN
+    // -------------------------------------------------------
+
+    if (!userInfo) {
+      openLoginPopup("favorite");
+      return;
+    }
+
+    // -------------------------------------------------------
+    // XÓA
+    // -------------------------------------------------------
+
+    if (isFavorite) {
+      removeFavoriteCourse(course.maKhoaHoc);
+
+      setIsFavorite(false);
+
+      toast.success(
+        "Đã xóa khỏi danh sách yêu thích!",
+      );
+
+      window.dispatchEvent(
+        new Event("favoriteUpdated"),
+      );
+
+      return;
+    }
+
+    // -------------------------------------------------------
+    // THÊM
+    // -------------------------------------------------------
+
+    addFavoriteCourse(course.maKhoaHoc);
+
+    setIsFavorite(true);
+
+    toast.success(
+      "Đã thêm vào danh sách yêu thích!",
+    );
+
+    window.dispatchEvent(
+      new Event("favoriteUpdated"),
+    );
+  };
+
+  // =========================================================
+  // LOADING
+  // =========================================================
+
   if (isLoading) {
     return <CourseLoading />;
   }
+
+  // =========================================================
+  // ERROR
+  // =========================================================
+
   if (error || !course) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -88,431 +302,815 @@ export default function CourseDetail({ courseId }: Props) {
     );
   }
 
-  const handleRegisterCourse = () => {
-    const userInfo = localStorage.getItem("USER_INFO");
-
-    if (!userInfo) {
-      toast.error("Vui lòng đăng nhập để đăng ký khóa học!");
-      router.push("/login");
-      return;
-    }
-
-    const user = JSON.parse(userInfo);
-
-    console.log("COURSE:", course);
-    console.log("maKhoaHoc:", course.maKhoaHoc);
-    console.log("taiKhoan:", user.taiKhoan);
-
-    if (!user.taiKhoan) {
-      toast.error("Không tìm thấy thông tin tài khoản!");
-      return;
-    }
-
-    if (!course?.maKhoaHoc) {
-      toast.error("Không tìm thấy mã khóa học!");
-      return;
-    }
-
-    registerCourse.mutate(
-      {
-        maKhoaHoc: course.maKhoaHoc,
-        taiKhoan: user.taiKhoan,
-      },
-      {
-        onSuccess: () => {
-          const stored = localStorage.getItem("MY_COURSES");
-
-          const myCourses: string[] = stored ? JSON.parse(stored) : [];
-
-          if (!myCourses.includes(course.maKhoaHoc)) {
-            myCourses.push(course.maKhoaHoc);
-          }
-
-          localStorage.setItem("MY_COURSES", JSON.stringify(myCourses));
-
-          toast.success("Đăng ký khóa học thành công!");
-
-          router.push("/my-courses");
-        },
-        onError: (error) => {
-          console.error(error);
-          toast.error("Đăng ký khóa học thất bại!");
-        },
-      },
-    );
-  };
-
-  const handleFavorite = () => {
-    if (!course?.maKhoaHoc) return;
-
-    // Kiểm tra đăng nhập
-    const userInfo = localStorage.getItem("USER_INFO");
-
-    if (!userInfo) {
-      toast.error("Vui lòng đăng nhập để thêm khóa học vào yêu thích!");
-      router.push("/login");
-      return;
-    }
-
-    if (isFavorite) {
-      removeFavoriteCourse(course.maKhoaHoc);
-      setIsFavorite(false);
-
-      toast.success("Đã xóa khỏi danh sách yêu thích!");
-    } else {
-      addFavoriteCourse(course.maKhoaHoc);
-      setIsFavorite(true);
-
-      toast.success("Đã thêm vào danh sách yêu thích!");
-    }
-  };
+  // =========================================================
+  // RENDER
+  // =========================================================
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Breadcrumb */}
-      <Link
-        href="/"
-        className="group mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-blue-600"
-      >
-        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-        Quay lại danh sách khóa học
-      </Link>
+    <>
+      <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-      {/* ================= HERO SECTION ================= */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-blue-900 text-white shadow-2xl">
-        {/* Background decorative blur elements */}
-        <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
+        {/* =================================================
+            BREADCRUMB
+        ================================================= */}
 
-        <div className="relative z-10 grid items-center gap-8 p-8 lg:grid-cols-12 lg:p-12">
-          {/* LEFT */}
-          <div className="lg:col-span-7">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-cyan-300 ring-1 ring-inset ring-cyan-500/30 backdrop-blur-md">
-              <Sparkles className="h-3.5 w-3.5" />
-              {course.danhMucKhoaHoc?.tenDanhMucKhoaHoc || "Lập trình Web"}
-            </span>
+        <Link
+          href="/"
+          className="group mb-6 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-blue-600"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
 
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl lg:leading-tight">
-              {course.tenKhoaHoc}
-            </h1>
+          Quay lại danh sách khóa học
+        </Link>
 
-            <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
-              {course.moTa}
-            </p>
+        {/* =================================================
+            HERO
+        ================================================= */}
 
-            {/* Stats */}
-            <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/20">
-                  <Star className="h-5 w-5 fill-amber-400" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-white">4.9</p>
-                  <p className="text-xs text-slate-400">1.200 đánh giá</p>
-                </div>
-              </div>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-blue-900 text-white shadow-2xl">
 
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10 text-blue-400 ring-1 ring-blue-400/20">
-                  <Users className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-white">
-                    {course.luotXem || 0}
-                  </p>
-                  <p className="text-xs text-slate-400">Học viên</p>
-                </div>
-              </div>
+          {/* Background */}
 
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400 ring-1 ring-cyan-400/20">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-lg font-bold text-white">28</p>
-                  <p className="text-xs text-slate-400">Bài học</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div className="absolute -right-20 -top-20 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
 
-          {/* RIGHT */}
-          <div className="relative lg:col-span-5">
-            <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-800/50 p-2 shadow-2xl backdrop-blur-sm">
-              <Image
-                src={getImageUrl?.(course.hinhAnh) || "/placeholder.jpg"}
-                alt={course.tenKhoaHoc}
-                width={900}
-                height={600}
-                priority
-                className="aspect-video w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+          <div className="absolute -bottom-20 -left-20 h-96 w-96 rounded-full bg-cyan-500/20 blur-3xl" />
 
-              {/* Progress Card */}
-              <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/20 bg-slate-900/80 p-4 shadow-xl backdrop-blur-md sm:bottom-6 sm:left-6 sm:right-6">
-                <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-300">
-                  <span>Tiến độ học tập</span>
-                  <span className="text-cyan-400">0%</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700">
-                  <div className="h-full w-0 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+          <div className="relative z-10 grid items-center gap-8 p-8 lg:grid-cols-12 lg:p-12">
 
-      {/* ================= MAIN CONTENT ================= */}
-      <div className="mt-10 grid gap-8 lg:grid-cols-12">
-        {/* LEFT MAIN CONTENT */}
-        <div className="space-y-8 lg:col-span-8">
-          {/* Bạn sẽ học được gì */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
-              Bạn sẽ học được gì
-            </h2>
+            {/* LEFT */}
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {[
-                "HTML5 & CSS3 Standard",
-                "JavaScript ES6+ Modern",
-                "ReactJS Core Concepts",
-                "Next.js App Router",
-                "Tích hợp RESTful API",
-                "Responsive Web Design",
-                "Deploy Website lên Vercel",
-                "Clean Code & Best Practices",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 transition-colors hover:bg-slate-50"
-                >
-                  <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
-                  <span className="text-sm font-medium text-slate-700">
-                    {item}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+            <div className="lg:col-span-7">
 
-          {/* Nội dung khóa học */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
-                Nội dung khóa học
-              </h2>
-              <span className="text-xs font-semibold text-slate-500 sm:text-sm">
-                28 bài học • 12 giờ thời lượng
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-4 py-1.5 text-xs font-semibold tracking-wide text-cyan-300 ring-1 ring-inset ring-cyan-500/30 backdrop-blur-md">
+
+                <Sparkles className="h-3.5 w-3.5" />
+
+                {course.danhMucKhoaHoc
+                  ?.tenDanhMucKhoaHoc ||
+                  "Lập trình Web"}
+
               </span>
-            </div>
 
-            <div className="mt-6 space-y-3">
-              {[
-                {
-                  title: "Chương 1: Giới thiệu khóa học",
-                  lessons: [
-                    "Tổng quan khóa học và Lộ trình",
-                    "Cài đặt môi trường làm việc VS Code",
-                  ],
-                },
-                {
-                  title: "Chương 2: HTML & CSS Nâng cao",
-                  lessons: [
-                    "HTML5 Semantic & SEO",
-                    "CSS Flexbox & Grid Master",
-                    "Responsive với Tailwind CSS",
-                  ],
-                },
-                {
-                  title: "Chương 3: JavaScript ES6+",
-                  lessons: [
-                    "ES6 Syntax, Arrow Function, Destructuring",
-                    "Xử lý bất đồng bộ: Promise & Async/Await",
-                  ],
-                },
-                {
-                  title: "Chương 4: ReactJS & NextJS",
-                  lessons: [
-                    "Component Architecture",
-                    "Hooks cơ bản đến nâng cao",
-                    "Routing và Data Fetching",
-                  ],
-                },
-              ].map((chapter, index) => (
-                <details
-                  key={index}
-                  className="group rounded-xl border border-slate-200 bg-white transition-all [&[open]]:shadow-sm"
-                >
-                  <summary className="flex cursor-pointer items-center justify-between p-4 font-semibold text-slate-800 transition-colors hover:bg-slate-50/80">
-                    <div className="flex items-center gap-3 text-sm sm:text-base">
-                      <BookOpen className="h-5 w-5 text-blue-600" />
-                      <span>{chapter.title}</span>
-                    </div>
-                    <span className="text-xs font-normal text-slate-500">
-                      {chapter.lessons.length} bài
-                    </span>
-                  </summary>
+              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl lg:leading-tight">
+                {course.tenKhoaHoc}
+              </h1>
 
-                  <div className="divide-y divide-slate-100 border-t border-slate-100 bg-slate-50/30">
-                    {chapter.lessons.map((lesson) => (
-                      <div
-                        key={lesson}
-                        className="flex items-center justify-between px-5 py-3.5 text-xs transition-colors hover:bg-white sm:text-sm"
-                      >
-                        <div className="flex items-center gap-3 text-slate-700">
-                          <PlayCircle className="h-4 w-4 text-slate-400" />
-                          <span>{lesson}</span>
-                        </div>
-                        <span className="cursor-pointer rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100">
-                          Học thử
-                        </span>
-                      </div>
-                    ))}
+              <p className="mt-4 max-w-2xl text-base text-slate-300 sm:text-lg">
+                {course.moTa}
+              </p>
+
+              {/* STATS */}
+
+              <div className="mt-8 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+
+                <div className="flex items-center gap-3">
+
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400 ring-1 ring-amber-400/20">
+                    <Star className="h-5 w-5 fill-amber-400" />
                   </div>
-                </details>
-              ))}
+
+                  <div>
+                    <p className="text-lg font-bold text-white">
+                      4.9
+                    </p>
+
+                    <p className="text-xs text-slate-400">
+                      1.200 đánh giá
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="flex items-center gap-3">
+
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10 text-blue-400 ring-1 ring-blue-400/20">
+                    <Users className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-lg font-bold text-white">
+                      {course.luotXem || 0}
+                    </p>
+
+                    <p className="text-xs text-slate-400">
+                      Học viên
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="flex items-center gap-3">
+
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-400 ring-1 ring-cyan-400/20">
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-lg font-bold text-white">
+                      28
+                    </p>
+
+                    <p className="text-xs text-slate-400">
+                      Bài học
+                    </p>
+                  </div>
+
+                </div>
+
+              </div>
             </div>
-          </div>
 
-          {/* Mô tả khóa học */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">
-              Mô tả khóa học
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
-              {course.moTa}
-            </p>
-          </div>
+            {/* RIGHT */}
 
-          {/* Giảng viên */}
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
-            <h2 className="mb-6 text-xl font-bold text-slate-900 sm:text-2xl">
-              Giảng viên
-            </h2>
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <img
-                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
-                  course.nguoiTao?.hoTen || "Admin",
-                )}&background=2563eb&color=fff&size=200`}
-                alt={course.nguoiTao?.hoTen}
-                className="h-20 w-20 rounded-2xl object-cover ring-4 ring-blue-50"
-              />
-              <div className="space-y-1.5">
-                <h3 className="text-lg font-bold text-slate-900">
-                  {course.nguoiTao?.hoTen || "Chưa cập nhật"}
-                </h3>
-                <p className="text-xs font-medium text-blue-600 sm:text-sm">
-                  Senior FullStack Developer
-                </p>
-                <p className="pt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
-                  Hơn 8 năm kinh nghiệm phát triển Web với React, NodeJS, NextJS
-                  và đã đào tạo hơn 20.000 học viên trên toàn quốc.
-                </p>
+            <div className="relative lg:col-span-5">
+
+              <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-slate-800/50 p-2 shadow-2xl backdrop-blur-sm">
+
+                <Image
+                  src={
+                    getImageUrl(course.hinhAnh) ||
+                    "/placeholder.jpg"
+                  }
+                  alt={course.tenKhoaHoc}
+                  width={900}
+                  height={600}
+                  priority
+                  className="aspect-video w-full rounded-xl object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+
+                {/* Progress */}
+
+                <div className="absolute bottom-4 left-4 right-4 rounded-xl border border-white/20 bg-slate-900/80 p-4 shadow-xl backdrop-blur-md sm:bottom-6 sm:left-6 sm:right-6">
+
+                  <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-300">
+
+                    <span>
+                      Tiến độ học tập
+                    </span>
+
+                    <span className="text-cyan-400">
+                      0%
+                    </span>
+
+                  </div>
+
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+                    <div className="h-full w-0 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+                  </div>
+
+                </div>
+
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT SIDEBAR */}
-        <aside className="lg:col-span-4">
-          <div className="sticky top-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-100">
-            {/* CTA Button */}
-            <div className="flex gap-3">
-              <button
-                onClick={handleRegisterCourse}
-                disabled={registerCourse.isPending}
-                className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 py-3.5 text-base font-bold text-white shadow-lg shadow-blue-500/20 transition hover:-translate-y-0.5 hover:from-blue-700 hover:to-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {registerCourse.isPending
-                  ? "⏳ Đang đăng ký..."
-                  : "🚀 Đăng ký học ngay"}
-              </button>
+        {/* =================================================
+            MAIN CONTENT
+        ================================================= */}
+
+        <div className="mt-10 grid gap-8 lg:grid-cols-12">
+
+          {/* LEFT */}
+
+          <div className="space-y-8 lg:col-span-8">
+
+            {/* WHAT YOU LEARN */}
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+
+              <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                Bạn sẽ học được gì
+              </h2>
+
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+
+                {[
+                  "HTML5 & CSS3 Standard",
+                  "JavaScript ES6+ Modern",
+                  "ReactJS Core Concepts",
+                  "Next.js App Router",
+                  "Tích hợp RESTful API",
+                  "Responsive Web Design",
+                  "Deploy Website lên Vercel",
+                  "Clean Code & Best Practices",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50/50 p-3.5 transition-colors hover:bg-slate-50"
+                  >
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+
+                    <span className="text-sm font-medium text-slate-700">
+                      {item}
+                    </span>
+                  </div>
+                ))}
+
+              </div>
+            </div>
+
+            {/* COURSE CONTENT */}
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+
+                <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">
+                  Nội dung khóa học
+                </h2>
+
+                <span className="text-xs font-semibold text-slate-500 sm:text-sm">
+                  28 bài học • 12 giờ thời lượng
+                </span>
+
+              </div>
+
+              <div className="mt-6 space-y-3">
+
+                {[
+                  {
+                    title: "Chương 1: Giới thiệu khóa học",
+                    lessons: [
+                      "Tổng quan khóa học và Lộ trình",
+                      "Cài đặt môi trường làm việc VS Code",
+                    ],
+                  },
+                  {
+                    title: "Chương 2: HTML & CSS Nâng cao",
+                    lessons: [
+                      "HTML5 Semantic & SEO",
+                      "CSS Flexbox & Grid Master",
+                      "Responsive với Tailwind CSS",
+                    ],
+                  },
+                  {
+                    title: "Chương 3: JavaScript ES6+",
+                    lessons: [
+                      "ES6 Syntax, Arrow Function, Destructuring",
+                      "Xử lý bất đồng bộ: Promise & Async/Await",
+                    ],
+                  },
+                  {
+                    title: "Chương 4: ReactJS & NextJS",
+                    lessons: [
+                      "Component Architecture",
+                      "Hooks cơ bản đến nâng cao",
+                      "Routing và Data Fetching",
+                    ],
+                  },
+                ].map((chapter, index) => (
+                  <details
+                    key={index}
+                    className="group rounded-xl border border-slate-200 bg-white transition-all [&[open]]:shadow-sm"
+                  >
+
+                    <summary className="flex cursor-pointer items-center justify-between p-4 font-semibold text-slate-800 transition-colors hover:bg-slate-50/80">
+
+                      <div className="flex items-center gap-3 text-sm sm:text-base">
+
+                        <BookOpen className="h-5 w-5 text-blue-600" />
+
+                        <span>
+                          {chapter.title}
+                        </span>
+
+                      </div>
+
+                      <span className="text-xs font-normal text-slate-500">
+                        {chapter.lessons.length} bài
+                      </span>
+
+                    </summary>
+
+                    <div className="divide-y divide-slate-100 border-t border-slate-100 bg-slate-50/30">
+
+                      {chapter.lessons.map((lesson) => (
+                        <div
+                          key={lesson}
+                          className="flex items-center justify-between px-5 py-3.5 text-xs transition-colors hover:bg-white sm:text-sm"
+                        >
+
+                          <div className="flex items-center gap-3 text-slate-700">
+
+                            <PlayCircle className="h-4 w-4 text-slate-400" />
+
+                            <span>
+                              {lesson}
+                            </span>
+
+                          </div>
+
+                          <span className="cursor-pointer rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-100">
+                            Học thử
+                          </span>
+
+                        </div>
+                      ))}
+
+                    </div>
+                  </details>
+                ))}
+
+              </div>
+            </div>
+
+            {/* DESCRIPTION */}
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+
+              <h2 className="mb-4 text-xl font-bold text-slate-900 sm:text-2xl">
+                Mô tả khóa học
+              </h2>
+
+              <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
+                {course.moTa}
+              </p>
+
+            </div>
+
+            {/* TEACHER */}
+
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+
+              <h2 className="mb-6 text-xl font-bold text-slate-900 sm:text-2xl">
+                Giảng viên
+              </h2>
+
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(
+                    course.nguoiTao?.hoTen || "Admin",
+                  )}&background=2563eb&color=fff&size=200`}
+                  alt={course.nguoiTao?.hoTen}
+                  className="h-20 w-20 rounded-2xl object-cover ring-4 ring-blue-50"
+                />
+
+                <div className="space-y-1.5">
+
+                  <h3 className="text-lg font-bold text-slate-900">
+                    {course.nguoiTao?.hoTen ||
+                      "Chưa cập nhật"}
+                  </h3>
+
+                  <p className="text-xs font-medium text-blue-600 sm:text-sm">
+                    Senior FullStack Developer
+                  </p>
+
+                  <p className="pt-2 text-xs leading-relaxed text-slate-600 sm:text-sm">
+                    Hơn 8 năm kinh nghiệm phát triển Web
+                    với React, NodeJS, NextJS và đã đào tạo
+                    hơn 20.000 học viên trên toàn quốc.
+                  </p>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* =================================================
+              RIGHT SIDEBAR
+          ================================================= */}
+
+          <aside className="lg:col-span-4">
+
+            <div className="sticky top-6 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xl shadow-slate-100">
+
+              {/* CTA */}
+
+              <div className="flex gap-3">
+
+                {/* REGISTER */}
+
+                <button
+                  type="button"
+                  onClick={handleRegisterCourse}
+                  disabled={registerCourse.isPending}
+                  className="group flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all duration-300 hover:-translate-y-0.5 hover:from-blue-700 hover:to-cyan-600 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+
+                  {registerCourse.isPending ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+
+                      Đang đăng ký...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 transition-transform group-hover:scale-110" />
+
+                      Đăng ký học ngay
+
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </>
+                  )}
+
+                </button>
+
+                {/* FAVORITE */}
+
+                <button
+                  type="button"
+                  onClick={handleFavorite}
+                  title={
+                    isFavorite
+                      ? "Xóa khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                  aria-label={
+                    isFavorite
+                      ? "Xóa khỏi yêu thích"
+                      : "Thêm vào yêu thích"
+                  }
+                  className={`group flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl border shadow-sm backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-90 ${
+                    isFavorite
+                      ? "border-red-100 bg-red-50 text-red-500 shadow-red-100"
+                      : "border-slate-200 bg-white text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500 hover:shadow-md"
+                  }`}
+                >
+
+                  <Heart
+                    className="h-[21px] w-[21px] transition-transform duration-300 group-hover:scale-110"
+                    fill={
+                      isFavorite
+                        ? "currentColor"
+                        : "none"
+                    }
+                  />
+
+                </button>
+
+              </div>
+
+              <div className="my-6 border-t border-slate-100" />
+
+              {/* METADATA */}
+
+              <div className="space-y-4 text-xs sm:text-sm">
+
+                <div className="flex items-center justify-between text-slate-600">
+
+                  <span className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-slate-400" />
+
+                    Giảng viên
+                  </span>
+
+                  <span className="font-semibold text-slate-900">
+                    {course.nguoiTao?.hoTen || "N/A"}
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between text-slate-600">
+
+                  <span className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 text-slate-400" />
+
+                    Số bài học
+                  </span>
+
+                  <span className="font-semibold text-slate-900">
+                    28 bài
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between text-slate-600">
+
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-slate-400" />
+
+                    Thời lượng
+                  </span>
+
+                  <span className="font-semibold text-slate-900">
+                    12 giờ
+                  </span>
+
+                </div>
+
+                <div className="flex items-center justify-between text-slate-600">
+
+                  <span className="flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-slate-400" />
+
+                    Ngôn ngữ
+                  </span>
+
+                  <span className="font-semibold text-slate-900">
+                    Tiếng Việt
+                  </span>
+
+                </div>
+
+              </div>
+
+              {/* INCLUSIONS */}
+
+              <div className="mt-6 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
+
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                  Khóa học bao gồm:
+                </h3>
+
+                <ul className="mt-3 space-y-2.5 text-xs text-slate-600 sm:text-sm">
+
+                  <li className="flex items-center gap-2.5">
+                    <Video className="h-4 w-4 text-blue-600" />
+
+                    28 Video chất lượng HD
+                  </li>
+
+                  <li className="flex items-center gap-2.5">
+                    <FileCode2 className="h-4 w-4 text-blue-600" />
+
+                    Full Source Code thực hành
+                  </li>
+
+                  <li className="flex items-center gap-2.5">
+                    <HelpCircle className="h-4 w-4 text-blue-600" />
+
+                    Hỗ trợ giải đáp 24/7
+                  </li>
+
+                  <li className="flex items-center gap-2.5">
+                    <RefreshCw className="h-4 w-4 text-blue-600" />
+
+                    Cập nhật nội dung trọn đời
+                  </li>
+
+                  <li className="flex items-center gap-2.5">
+                    <Award className="h-4 w-4 text-blue-600" />
+
+                    Chứng chỉ hoàn thành
+                  </li>
+
+                </ul>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      {/* =====================================================
+          LOGIN POPUP
+      ===================================================== */}
+
+      {showLoginPopup && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/70 px-4 backdrop-blur-md"
+          onClick={() => setShowLoginPopup(false)}
+        >
+
+          <div
+            className="relative w-full max-w-md animate-[popup_.25s_ease-out] overflow-hidden rounded-[30px] border border-white/70 bg-white shadow-[0_30px_100px_rgba(15,23,42,0.3)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+
+            {/* TOP */}
+
+            <div className="relative h-32 overflow-hidden bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-400">
+
+              <div className="absolute -right-10 -top-16 h-40 w-40 rounded-full bg-white/10" />
+
+              <div className="absolute -bottom-20 -left-10 h-44 w-44 rounded-full bg-cyan-300/20" />
+
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.3),transparent_35%)]" />
+
+              {/* CLOSE */}
 
               <button
                 type="button"
-                onClick={handleFavorite}
-                title={isFavorite ? "Xóa khỏi yêu thích" : "Thêm vào yêu thích"}
-                className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border transition ${
-                  isFavorite
-                    ? "border-red-200 bg-red-50 text-red-500"
-                    : "border-slate-200 bg-white text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500"
-                }`}
+                onClick={() =>
+                  setShowLoginPopup(false)
+                }
+                className="absolute right-5 top-5 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/15 text-white backdrop-blur-md transition-all hover:rotate-90 hover:bg-white/25 active:scale-90"
+                aria-label="Đóng"
               >
-                <Heart
-                  className="h-6 w-6"
-                  fill={isFavorite ? "currentColor" : "none"}
-                />
+                <X className="h-5 w-5" />
               </button>
+
             </div>
 
-            <div className="my-6 border-t border-slate-100" />
+            {/* CONTENT */}
 
-            {/* Course Features Metadata */}
-            <div className="space-y-4 text-xs sm:text-sm">
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-slate-400" /> Giảng viên
-                </span>
-                <span className="font-semibold text-slate-900">
-                  {course.nguoiTao?.hoTen || "N/A"}
-                </span>
+            <div className="relative px-6 pb-7 sm:px-8">
+
+              {/* ICON */}
+
+              <div className="-mt-10 flex justify-center">
+
+                <div className="flex h-20 w-20 items-center justify-center rounded-[26px] border-4 border-white bg-white shadow-xl">
+
+                  <div
+                    className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
+                      loginAction === "register"
+                        ? "bg-gradient-to-br from-blue-50 to-cyan-100 text-blue-600"
+                        : "bg-gradient-to-br from-red-50 to-rose-100 text-red-500"
+                    }`}
+                  >
+
+                    {loginAction === "register" ? (
+                      <BookOpen className="h-7 w-7" />
+                    ) : (
+                      <Heart
+                        className="h-7 w-7"
+                        fill="currentColor"
+                      />
+                    )}
+
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-2">
-                  <BookOpen className="h-4 w-4 text-slate-400" /> Số bài học
-                </span>
-                <span className="font-semibold text-slate-900">28 bài</span>
+              {/* TEXT */}
+
+              <div className="mt-5 text-center">
+
+                <div
+                  className={`mb-3 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-wider ${
+                    loginAction === "register"
+                      ? "border-blue-100 bg-blue-50 text-blue-600"
+                      : "border-red-100 bg-red-50 text-red-500"
+                  }`}
+                >
+
+                  <Sparkles className="h-3.5 w-3.5" />
+
+                  {loginAction === "register"
+                    ? "Đăng ký khóa học"
+                    : "Tính năng yêu thích"}
+
+                </div>
+
+                <h3 className="text-2xl font-black tracking-tight text-slate-950">
+
+                  {loginAction === "register"
+                    ? "Đăng nhập để học"
+                    : "Đăng nhập để yêu thích"}
+
+                </h3>
+
+                <p className="mx-auto mt-2.5 max-w-sm text-sm leading-6 text-slate-500">
+
+                  {loginAction === "register"
+                    ? "Đăng nhập tài khoản để đăng ký khóa học và bắt đầu hành trình học tập của bạn."
+                    : "Lưu lại những khóa học bạn quan tâm để dễ dàng quay lại học bất cứ lúc nào."}
+
+                </p>
+
               </div>
 
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-slate-400" /> Thời lượng
-                </span>
-                <span className="font-semibold text-slate-900">12 giờ</span>
+              {/* BENEFITS */}
+
+              <div className="mt-6 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50/80">
+
+                {/* BENEFIT 1 */}
+
+                <div className="flex items-center gap-3 border-b border-slate-100 px-4 py-3.5">
+
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      loginAction === "register"
+                        ? "bg-blue-50 text-blue-600"
+                        : "bg-red-50 text-red-500"
+                    }`}
+                  >
+
+                    {loginAction === "register" ? (
+                      <BookOpen className="h-4 w-4" />
+                    ) : (
+                      <Heart
+                        className="h-4 w-4"
+                        fill="currentColor"
+                      />
+                    )}
+
+                  </div>
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-bold text-slate-800">
+
+                      {loginAction === "register"
+                        ? "Tham gia khóa học"
+                        : "Lưu khóa học yêu thích"}
+
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-500">
+
+                      {loginAction === "register"
+                        ? "Truy cập nội dung và bắt đầu học ngay."
+                        : "Truy cập nhanh những khóa học bạn quan tâm."}
+
+                    </p>
+
+                  </div>
+                </div>
+
+                {/* BENEFIT 2 */}
+
+                <div className="flex items-center gap-3 px-4 py-3.5">
+
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-500">
+
+                    {loginAction === "register" ? (
+                      <Award className="h-4 w-4" />
+                    ) : (
+                      <Bookmark className="h-4 w-4" />
+                    )}
+
+                  </div>
+
+                  <div className="min-w-0">
+
+                    <p className="text-sm font-bold text-slate-800">
+
+                      {loginAction === "register"
+                        ? "Theo dõi tiến độ học tập"
+                        : "Quản lý danh sách cá nhân"}
+
+                    </p>
+
+                    <p className="mt-0.5 text-xs text-slate-500">
+
+                      {loginAction === "register"
+                        ? "Học tập và theo dõi tiến trình của bạn."
+                        : "Thêm hoặc xóa khóa học bất cứ lúc nào."}
+
+                    </p>
+
+                  </div>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-slate-600">
-                <span className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-slate-400" /> Ngôn ngữ
-                </span>
-                <span className="font-semibold text-slate-900">Tiếng Việt</span>
-              </div>
-            </div>
+              {/* SECURITY */}
 
-            {/* Inclusions */}
-            <div className="mt-6 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-                Khóa học bao gồm:
-              </h3>
-              <ul className="mt-3 space-y-2.5 text-xs text-slate-600 sm:text-sm">
-                <li className="flex items-center gap-2.5">
-                  <Video className="h-4 w-4 text-blue-600" /> 28 Video chất
-                  lượng HD
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <FileCode2 className="h-4 w-4 text-blue-600" /> Full Source
-                  Code thực hành
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <HelpCircle className="h-4 w-4 text-blue-600" /> Hỗ trợ giải
-                  đáp 24/7
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <RefreshCw className="h-4 w-4 text-blue-600" /> Cập nhật nội
-                  dung trọn đời
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Award className="h-4 w-4 text-blue-600" /> Chứng chỉ hoàn
-                  thành
-                </li>
-              </ul>
+              <div className="mt-4 flex items-center justify-center gap-2 text-[11px] font-medium text-slate-400">
+
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+
+                Thông tin tài khoản của bạn luôn được bảo mật
+
+              </div>
+
+              {/* BUTTONS */}
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowLoginPopup(false)
+                  }
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-bold text-slate-700 transition-all hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98]"
+                >
+                  Để sau
+                </button>
+
+                <Link
+                  href="/login"
+                  onClick={() =>
+                    setShowLoginPopup(false)
+                  }
+                  className="group flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98]"
+                >
+
+                  <LogIn className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+
+                  Đăng nhập ngay
+
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+
+                </Link>
+
+              </div>
+
             </div>
           </div>
-        </aside>
-      </div>
-    </section>
+        </div>
+      )}
+
+      {/* =====================================================
+          POPUP ANIMATION
+      ===================================================== */}
+
+      <style jsx global>{`
+        @keyframes popup {
+          from {
+            opacity: 0;
+            transform: translateY(12px) scale(0.96);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+      `}</style>
+    </>
   );
 }
