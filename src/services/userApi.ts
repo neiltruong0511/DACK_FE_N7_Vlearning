@@ -43,35 +43,49 @@ export const userApi = {
     });
   },
 
+  // ==========================================
+  // NHÓM GHI DANH - QUẢN LÝ THEO NGƯỜI DÙNG (USER)
+  // ==========================================
+
   getUnenrolledCourses(taiKhoan: string) {
-    return axiosClient.post("/QuanLyNguoiDung/LayDanhSachKhoaHocChuaGhiDanh", {
-      taiKhoan,
-    });
+    // SỬA LỖI: API này dùng Query Parameter (?TaiKhoan=...) theo Swagger
+    return axiosClient.post(`/QuanLyNguoiDung/LayDanhSachKhoaHocChuaGhiDanh?TaiKhoan=${taiKhoan}`);
   },
 
   getPendingCourses(taiKhoan: string) {
+    // API này dùng Body
     return axiosClient.post("/QuanLyNguoiDung/LayDanhSachKhoaHocChoXetDuyet", {
       taiKhoan,
     });
   },
 
   getApprovedCourses(taiKhoan: string) {
+    // API này dùng Body
     return axiosClient.post("/QuanLyNguoiDung/LayDanhSachKhoaHocDaXetDuyet", {
       taiKhoan,
     });
   },
 
+  // ==========================================
+  // NHÓM GHI DANH - QUẢN LÝ THEO KHÓA HỌC (COURSE)
+  // ==========================================
+
   getUnenrolledUsers(maKhoaHoc: string) {
+    // API này dùng Body
     return axiosClient.post("/QuanLyNguoiDung/LayDanhSachNguoiDungChuaGhiDanh", {
       maKhoaHoc,
     });
   },
 
-  getPendingInstructors() {
-    return axiosClient.post("/QuanLyNguoiDung/LayDanhSachHocVienChoXetDuyet");
+  getPendingStudents(maKhoaHoc: string) {
+    // SỬA LỖI: Đổi tên thành getPendingStudents và thêm Body maKhoaHoc
+    return axiosClient.post("/QuanLyNguoiDung/LayDanhSachHocVienChoXetDuyet", {
+      maKhoaHoc,
+    });
   },
 
   getCourseStudents(maKhoaHoc: string) {
+    // API này dùng Body
     return axiosClient.post("/QuanLyNguoiDung/LayDanhSachHocVienKhoaHoc", {
       maKhoaHoc,
     });
