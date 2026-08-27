@@ -1,39 +1,163 @@
-const FAVORITE_KEY = "FAVORITE_COURSES";
+const FAVORITE_PREFIX = "FAVORITE_COURSES_";
 
-export function getFavoriteCourses(): string[] {
-  if (typeof window === "undefined") return [];
+/**
+ * Lấy tài khoản đang đăng nhập
+ */
+function getCurrentAccount(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
   try {
-    const stored = localStorage.getItem(FAVORITE_KEY);
+    const userInfo = localStorage.getItem("USER_INFO");
 
-    return stored ? JSON.parse(stored) : [];
-  } catch {
+    if (!userInfo) {
+      return null;
+    }
+
+    const user = JSON.parse(userInfo);
+
+    return user?.taiKhoan || null;
+  } catch (error) {
+    console.error("Lỗi đọc USER_INFO:", error);
+    return null;
+  }
+}
+
+/**
+ * Tạo key yêu thích riêng cho từng tài khoản
+ *
+ * Ví dụ:
+ * FAVORITE_COURSES_nguyen123
+ * FAVORITE_COURSES_admin
+ */
+function getFavoriteKey(): string | null {
+  const taiKhoan = getCurrentAccount();
+
+  if (!taiKhoan) {
+    return null;
+  }
+
+  return `${FAVORITE_PREFIX}${taiKhoan}`;
+}
+
+/**
+ * Lấy danh sách khóa học yêu thích
+ */
+export function getFavoriteCourses(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const key = getFavoriteKey();
+
+  // Chưa đăng nhập
+  if (!key) {
+    return [];
+  }
+
+  try {
+    const stored = localStorage.getItem(key);
+
+    if (!stored) {
+      return [];
+    }
+
+    const parsed = JSON.parse(stored);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.error(
+      "Lỗi lấy danh sách khóa học yêu thích:",
+      error,
+    );
+
     return [];
   }
 }
 
-export function addFavoriteCourse(maKhoaHoc: string) {
+/**
+ * Thêm khóa học yêu thích
+ */
+export function addFavoriteCourse(
+  maKhoaHoc: string,
+) {
+  if (!maKhoaHoc) {
+    return;
+  }
+
+  const key = getFavoriteKey();
+
+  // Chưa đăng nhập thì không cho lưu
+  if (!key) {
+    return;
+  }
+
   const favorites = getFavoriteCourses();
 
   if (!favorites.includes(maKhoaHoc)) {
-    favorites.push(maKhoaHoc);
-    localStorage.setItem(FAVORITE_KEY, JSON.stringify(favorites));
+    const updated = [
+      ...favorites,
+      maKhoaHoc,
+    ];
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(updated),
+    );
   }
 }
 
-export function removeFavoriteCourse(maKhoaHoc: string) {
+/**
+ * Xóa khóa học yêu thích
+ */
+export function removeFavoriteCourse(
+  maKhoaHoc: string,
+) {
+  const key = getFavoriteKey();
+
+  if (!key) {
+    return;
+  }
+
   const favorites = getFavoriteCourses();
 
   const updated = favorites.filter(
-    (id) => id !== maKhoaHoc
+    (id) => id !== maKhoaHoc,
   );
 
   localStorage.setItem(
-    FAVORITE_KEY,
-    JSON.stringify(updated)
+    key,
+    JSON.stringify(updated),
   );
 }
 
-export function isFavoriteCourse(maKhoaHoc: string) {
-  return getFavoriteCourses().includes(maKhoaHoc);
+/**
+ * Kiểm tra khóa học có được yêu thích không
+ */
+export function isFavoriteCourse(
+  maKhoaHoc: string,
+) {
+  const favorites = getFavoriteCourses();
+
+  return favorites.includes(maKhoaHoc);
+}
+
+/**
+ * Toggle yêu thích
+ *
+ * return:
+ * true  = đã thêm
+ * false = đã xóa
+ */
+export function toggleFavoriteCourse(
+  maKhoaHoc: string,
+): boolean {
+  if (isFavoriteCourse(maKhoaHoc)) {
+    removeFavoriteCourse(maKhoaHoc);
+    return false;
+  }
+
+  addFavoriteCourse(maKhoaHoc);
+  return true;
 }
