@@ -1,22 +1,30 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import {
+  AlertCircle,
+  AlertTriangle,
+  BookOpen,
   CheckCircle2,
   Edit3,
+  Info,
+  Loader2,
   Plus,
   Search,
   Trash2,
   Users,
   X,
-  Loader2,
-  AlertCircle,
-  AlertTriangle,
-  Info,
 } from "lucide-react";
 
 import { userApi } from "@/services/userApi";
+import UserEnrollmentModal from "@/components/admin/UserEnrollmentModal";
 
 /* =========================================================
    TYPES
@@ -47,7 +55,11 @@ type FormData = {
   maNhom: string;
 };
 
-type NotificationType = "success" | "error" | "warning" | "info";
+type NotificationType =
+  | "success"
+  | "error"
+  | "warning"
+  | "info";
 
 type Notification = {
   type: NotificationType;
@@ -112,7 +124,10 @@ const getErrorMessage = (
     error?.response?.data?.error ||
     error?.message;
 
-  if (typeof message === "string" && message.trim()) {
+  if (
+    typeof message === "string" &&
+    message.trim()
+  ) {
     return message;
   }
 
@@ -133,7 +148,7 @@ const normalizeText = (value: unknown) => {
 
 export default function AdminUsersPage() {
   /* =======================================================
-     STATE
+     USERS
   ======================================================= */
 
   const [users, setUsers] = useState<User[]>([]);
@@ -154,11 +169,29 @@ export default function AdminUsersPage() {
 
   const [saving, setSaving] = useState(false);
 
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleting, setDeleting] =
+    useState<string | null>(null);
+
+  /* =======================================================
+     USER FORM
+  ======================================================= */
 
   const [open, setOpen] = useState(false);
 
-  const [editing, setEditing] = useState<User | null>(null);
+  const [editing, setEditing] =
+    useState<User | null>(null);
+
+  /* =======================================================
+     ENROLLMENT MODAL
+  ======================================================= */
+
+  const [enrollModalOpen, setEnrollModalOpen] =
+    useState(false);
+
+  const [
+    selectedUserForEnroll,
+    setSelectedUserForEnroll,
+  ] = useState<string | null>(null);
 
   /* =======================================================
      NOTIFICATION
@@ -168,16 +201,19 @@ export default function AdminUsersPage() {
     useState<Notification | null>(null);
 
   const notificationTimerRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null,
+    );
 
   /* =======================================================
-     CONFIRM MODAL
+     CONFIRM DELETE MODAL
   ======================================================= */
 
   const [confirmModal, setConfirmModal] =
     useState<ConfirmModal | null>(null);
 
-  const confirmActionRef = useRef<(() => void) | null>(null);
+  const confirmActionRef =
+    useRef<(() => void) | null>(null);
 
   /* =======================================================
      FORM
@@ -193,14 +229,20 @@ export default function AdminUsersPage() {
     maNhom: "GP01",
   });
 
+  /* =======================================================
+     SEARCH REFS
+  ======================================================= */
+
   const searchTimerRef =
-    useRef<ReturnType<typeof setTimeout> | null>(null);
+    useRef<ReturnType<typeof setTimeout> | null>(
+      null,
+    );
 
   const searchRequestIdRef = useRef(0);
 
-  /* =======================================================
-     NOTIFICATION FUNCTION
-  ======================================================= */
+  /* =========================================================
+     NOTIFICATION
+  ========================================================= */
 
   const showNotification = useCallback(
     (
@@ -210,7 +252,9 @@ export default function AdminUsersPage() {
       duration = 4000,
     ) => {
       if (notificationTimerRef.current) {
-        clearTimeout(notificationTimerRef.current);
+        clearTimeout(
+          notificationTimerRef.current,
+        );
       }
 
       setNotification({
@@ -219,24 +263,27 @@ export default function AdminUsersPage() {
         message,
       });
 
-      notificationTimerRef.current = setTimeout(() => {
-        setNotification(null);
-      }, duration);
+      notificationTimerRef.current =
+        setTimeout(() => {
+          setNotification(null);
+        }, duration);
     },
     [],
   );
 
   const closeNotification = () => {
     if (notificationTimerRef.current) {
-      clearTimeout(notificationTimerRef.current);
+      clearTimeout(
+        notificationTimerRef.current,
+      );
     }
 
     setNotification(null);
   };
 
-  /* =======================================================
-     CONFIRM FUNCTION
-  ======================================================= */
+  /* =========================================================
+     CONFIRM MODAL
+  ========================================================= */
 
   const showConfirm = (
     title: string,
@@ -268,9 +315,9 @@ export default function AdminUsersPage() {
     }
   };
 
-  /* =======================================================
+  /* =========================================================
      RESET FORM
-  ======================================================= */
+  ========================================================= */
 
   const resetForm = () => {
     setForm({
@@ -284,17 +331,14 @@ export default function AdminUsersPage() {
     });
   };
 
-  /* =======================================================
+  /* =========================================================
      LOAD USERS
-  ======================================================= */
+  ========================================================= */
 
   const loadUsers = useCallback(
     async (pageNumber: number) => {
       try {
         setLoading(true);
-
-        console.log("==============================");
-        console.log("LOAD USERS PAGE:", pageNumber);
 
         const result =
           await userApi.getUsersPagination(
@@ -309,20 +353,25 @@ export default function AdminUsersPage() {
 
         const response = result.data;
 
-        const usersData = getList<User>(response);
+        const usersData =
+          getList<User>(response);
 
         setUsers(usersData);
 
         const total =
           Number(response?.totalPages) ||
           Number(response?.totalPagesCount) ||
-          Number(response?.content?.totalPages) ||
+          Number(
+            response?.content?.totalPages,
+          ) ||
           Number(
             response?.content?.totalPagesCount,
           ) ||
           1;
 
-        setTotalPages(Math.max(1, total));
+        setTotalPages(
+          Math.max(1, total),
+        );
       } catch (error) {
         console.error(
           "Lỗi lấy danh sách user:",
@@ -338,6 +387,7 @@ export default function AdminUsersPage() {
             error,
             "Không thể lấy danh sách người dùng.",
           ),
+          6000,
         );
       } finally {
         setLoading(false);
@@ -346,41 +396,46 @@ export default function AdminUsersPage() {
     [showNotification],
   );
 
-  /* =======================================================
+  /* =========================================================
      LOAD USER TYPES
-  ======================================================= */
+  ========================================================= */
 
-  const loadUserTypes = useCallback(async () => {
-    try {
-      const result =
-        await userApi.getUserTypes();
+  const loadUserTypes = useCallback(
+    async () => {
+      try {
+        const result =
+          await userApi.getUserTypes();
 
-      console.log(
-        "USER TYPES RESPONSE:",
-        result.data,
-      );
+        console.log(
+          "USER TYPES RESPONSE:",
+          result.data,
+        );
 
-      const typesData =
-        getList<UserType>(result.data);
+        const typesData =
+          getList<UserType>(
+            result.data,
+          );
 
-      if (typesData.length > 0) {
-        setTypes(typesData);
-      } else {
+        if (typesData.length > 0) {
+          setTypes(typesData);
+        } else {
+          setTypes(DEFAULT_USER_TYPES);
+        }
+      } catch (error) {
+        console.error(
+          "Lỗi lấy loại người dùng:",
+          error,
+        );
+
         setTypes(DEFAULT_USER_TYPES);
       }
-    } catch (error) {
-      console.error(
-        "Lỗi lấy loại người dùng:",
-        error,
-      );
+    },
+    [],
+  );
 
-      setTypes(DEFAULT_USER_TYPES);
-    }
-  }, []);
-
-  /* =======================================================
+  /* =========================================================
      INITIAL LOAD
-  ======================================================= */
+  ========================================================= */
 
   useEffect(() => {
     if (keyword.trim()) {
@@ -388,15 +443,19 @@ export default function AdminUsersPage() {
     }
 
     loadUsers(page);
-  }, [page, keyword, loadUsers]);
+  }, [
+    page,
+    keyword,
+    loadUsers,
+  ]);
 
   useEffect(() => {
     loadUserTypes();
   }, [loadUserTypes]);
 
-  /* =======================================================
+  /* =========================================================
      SEARCH
-  ======================================================= */
+  ========================================================= */
 
   const searchUsers = useCallback(
     async (searchValue: string) => {
@@ -412,11 +471,11 @@ export default function AdminUsersPage() {
       try {
         setSearching(true);
 
-        console.log("SEARCH:", value);
-
         try {
           const result =
-            await userApi.searchUsers(value);
+            await userApi.searchUsers(
+              value,
+            );
 
           console.log(
             "SEARCH API RESPONSE:",
@@ -431,9 +490,13 @@ export default function AdminUsersPage() {
           }
 
           const searchResult =
-            getList<User>(result.data);
+            getList<User>(
+              result.data,
+            );
 
-          if (searchResult.length > 0) {
+          if (
+            searchResult.length > 0
+          ) {
             setUsers(searchResult);
             setTotalPages(1);
 
@@ -446,7 +509,9 @@ export default function AdminUsersPage() {
           );
         }
 
-        /* FALLBACK */
+        /* ==============================
+           FALLBACK SEARCH
+        ============================== */
 
         const allUsersResponse =
           await userApi.getUsers();
@@ -467,38 +532,45 @@ export default function AdminUsersPage() {
           normalizeText(value);
 
         const filteredUsers =
-          allUsers.filter((user) => {
-            const taiKhoan = normalizeText(
-              user.taiKhoan,
-            );
+          allUsers.filter(
+            (user) => {
+              const taiKhoan =
+                normalizeText(
+                  user.taiKhoan,
+                );
 
-            const hoTen = normalizeText(
-              user.hoTen,
-            );
+              const hoTen =
+                normalizeText(
+                  user.hoTen,
+                );
 
-            const email = normalizeText(
-              user.email,
-            );
+              const email =
+                normalizeText(
+                  user.email,
+                );
 
-            const soDt = normalizeText(
-              user.soDt || user.soDT,
-            );
+              const soDt =
+                normalizeText(
+                  user.soDt ||
+                    user.soDT,
+                );
 
-            return (
-              taiKhoan.includes(
-                normalizedKeyword,
-              ) ||
-              hoTen.includes(
-                normalizedKeyword,
-              ) ||
-              email.includes(
-                normalizedKeyword,
-              ) ||
-              soDt.includes(
-                normalizedKeyword,
-              )
-            );
-          });
+              return (
+                taiKhoan.includes(
+                  normalizedKeyword,
+                ) ||
+                hoTen.includes(
+                  normalizedKeyword,
+                ) ||
+                email.includes(
+                  normalizedKeyword,
+                ) ||
+                soDt.includes(
+                  normalizedKeyword,
+                )
+              );
+            },
+          );
 
         setUsers(filteredUsers);
         setTotalPages(1);
@@ -527,20 +599,25 @@ export default function AdminUsersPage() {
     [],
   );
 
-  /* =======================================================
+  /* =========================================================
      HANDLE SEARCH
-  ======================================================= */
+  ========================================================= */
 
-  const handleSearch = (value: string) => {
+  const handleSearch = (
+    value: string,
+  ) => {
     setKeyword(value);
 
     if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
+      clearTimeout(
+        searchTimerRef.current,
+      );
     }
 
     searchRequestIdRef.current += 1;
 
-    const searchValue = value.trim();
+    const searchValue =
+      value.trim();
 
     if (!searchValue) {
       setSearching(false);
@@ -556,13 +633,15 @@ export default function AdminUsersPage() {
       }, 400);
   };
 
-  /* =======================================================
+  /* =========================================================
      CLEAR SEARCH
-  ======================================================= */
+  ========================================================= */
 
   const clearSearch = () => {
     if (searchTimerRef.current) {
-      clearTimeout(searchTimerRef.current);
+      clearTimeout(
+        searchTimerRef.current,
+      );
 
       searchTimerRef.current = null;
     }
@@ -578,26 +657,37 @@ export default function AdminUsersPage() {
     loadUsers(1);
   };
 
-  /* =======================================================
+  /* =========================================================
      SHOW FORM
-  ======================================================= */
+  ========================================================= */
 
-  const showForm = (user?: User) => {
+  const showForm = (
+    user?: User,
+  ) => {
     if (user) {
       setEditing(user);
 
       setForm({
-        taiKhoan: user.taiKhoan || "",
+        taiKhoan:
+          user.taiKhoan || "",
+
         matKhau: "",
-        hoTen: user.hoTen || "",
-        email: user.email || "",
+
+        hoTen:
+          user.hoTen || "",
+
+        email:
+          user.email || "",
+
         soDt:
           user.soDt ||
           user.soDT ||
           "",
+
         maLoaiNguoiDung:
           user.maLoaiNguoiDung ||
           "HV",
+
         maNhom:
           user.maNhom ||
           "GP01",
@@ -611,9 +701,9 @@ export default function AdminUsersPage() {
     setOpen(true);
   };
 
-  /* =======================================================
+  /* =========================================================
      CLOSE FORM
-  ======================================================= */
+  ========================================================= */
 
   const closeForm = () => {
     if (saving) {
@@ -627,9 +717,29 @@ export default function AdminUsersPage() {
     resetForm();
   };
 
-  /* =======================================================
-     SUBMIT
-  ======================================================= */
+  /* =========================================================
+     OPEN ENROLLMENT MODAL
+  ========================================================= */
+
+  const openEnrollModal = (
+    taiKhoan: string,
+  ) => {
+    setSelectedUserForEnroll(
+      taiKhoan,
+    );
+
+    setEnrollModalOpen(true);
+  };
+
+  const closeEnrollModal = () => {
+    setEnrollModalOpen(false);
+
+    setSelectedUserForEnroll(null);
+  };
+
+  /* =========================================================
+     SUBMIT USER
+  ========================================================= */
 
   const submit = async (
     event: FormEvent,
@@ -640,7 +750,9 @@ export default function AdminUsersPage() {
       return;
     }
 
-    /* VALIDATE */
+    /* ==============================
+       VALIDATE
+    ============================== */
 
     if (!form.taiKhoan.trim()) {
       showNotification(
@@ -724,12 +836,12 @@ export default function AdminUsersPage() {
       };
 
       /*
-       * THÊM:
-       * bắt buộc gửi mật khẩu.
+       * THÊM USER:
+       * bắt buộc có mật khẩu.
        *
-       * SỬA:
-       * có nhập -> gửi mật khẩu mới.
-       * không nhập -> không gửi.
+       * EDIT USER:
+       * nếu nhập mật khẩu thì đổi mật khẩu.
+       * nếu để trống thì giữ mật khẩu cũ.
        */
 
       if (
@@ -741,17 +853,15 @@ export default function AdminUsersPage() {
       }
 
       console.log(
-        "================================",
-      );
-
-      console.log(
         editing
           ? "UPDATE USER PAYLOAD:"
           : "ADD USER PAYLOAD:",
         payload,
       );
 
-      /* UPDATE */
+      /* ==============================
+         UPDATE
+      ============================== */
 
       if (editing) {
         await userApi.updateUser(
@@ -766,7 +876,9 @@ export default function AdminUsersPage() {
             : "Thông tin người dùng đã được cập nhật.",
         );
       } else {
-        /* ADD */
+        /* ==============================
+           ADD
+        ============================== */
 
         await userApi.addUser(
           payload,
@@ -779,7 +891,9 @@ export default function AdminUsersPage() {
         );
       }
 
-      /* CLOSE */
+      /* ==============================
+         CLOSE FORM
+      ============================== */
 
       setOpen(false);
 
@@ -787,7 +901,9 @@ export default function AdminUsersPage() {
 
       resetForm();
 
-      /* RESET SEARCH */
+      /* ==============================
+         RESET SEARCH
+      ============================== */
 
       setKeyword("");
 
@@ -795,7 +911,9 @@ export default function AdminUsersPage() {
 
       setPage(1);
 
-      /* LOAD AGAIN */
+      /* ==============================
+         LOAD AGAIN
+      ============================== */
 
       await loadUsers(1);
     } catch (error: any) {
@@ -836,11 +954,13 @@ export default function AdminUsersPage() {
     }
   };
 
-  /* =======================================================
-     DELETE
-  ======================================================= */
+  /* =========================================================
+     DELETE USER
+  ========================================================= */
 
-  const remove = (user: User) => {
+  const remove = (
+    user: User,
+  ) => {
     if (deleting) {
       return;
     }
@@ -869,7 +989,8 @@ export default function AdminUsersPage() {
             page > 1
           ) {
             setPage(
-              (prev) => prev - 1,
+              (prev) =>
+                prev - 1,
             );
           } else {
             await loadUsers(page);
@@ -897,9 +1018,9 @@ export default function AdminUsersPage() {
     );
   };
 
-  /* =======================================================
+  /* =========================================================
      PAGINATION
-  ======================================================= */
+  ========================================================= */
 
   const goToPreviousPage =
     () => {
@@ -911,11 +1032,12 @@ export default function AdminUsersPage() {
         return;
       }
 
-      setPage((prev) =>
-        Math.max(
-          1,
-          prev - 1,
-        ),
+      setPage(
+        (prev) =>
+          Math.max(
+            1,
+            prev - 1,
+          ),
       );
     };
 
@@ -928,72 +1050,74 @@ export default function AdminUsersPage() {
       return;
     }
 
-    setPage((prev) =>
-      Math.min(
-        totalPages,
-        prev + 1,
-      ),
+    setPage(
+      (prev) =>
+        Math.min(
+          totalPages,
+          prev + 1,
+        ),
     );
   };
 
-  /* =======================================================
+  /* =========================================================
      NOTIFICATION ICON
-  ======================================================= */
+  ========================================================= */
 
-  const NotificationIcon = () => {
-    if (!notification) {
-      return null;
-    }
+  const NotificationIcon =
+    () => {
+      if (!notification) {
+        return null;
+      }
 
-    if (
-      notification.type ===
-      "success"
-    ) {
+      if (
+        notification.type ===
+        "success"
+      ) {
+        return (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+            <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+          </div>
+        );
+      }
+
+      if (
+        notification.type ===
+        "error"
+      ) {
+        return (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+            <AlertCircle className="h-5 w-5 text-red-600" />
+          </div>
+        );
+      }
+
+      if (
+        notification.type ===
+        "warning"
+      ) {
+        return (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
+            <AlertTriangle className="h-5 w-5 text-amber-600" />
+          </div>
+        );
+      }
+
       return (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
-          <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
+          <Info className="h-5 w-5 text-blue-600" />
         </div>
       );
-    }
+    };
 
-    if (
-      notification.type ===
-      "error"
-    ) {
-      return (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
-          <AlertCircle className="h-5 w-5 text-red-600" />
-        </div>
-      );
-    }
-
-    if (
-      notification.type ===
-      "warning"
-    ) {
-      return (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100">
-          <AlertTriangle className="h-5 w-5 text-amber-600" />
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100">
-        <Info className="h-5 w-5 text-blue-600" />
-      </div>
-    );
-  };
-
-  /* =======================================================
+  /* =========================================================
      RENDER
-  ======================================================= */
+  ========================================================= */
 
   return (
     <div>
-      {/* =================================================
-          TOAST NOTIFICATION
-      ================================================= */}
+      {/* =====================================================
+          TOAST
+      ===================================================== */}
 
       {notification && (
         <div className="pointer-events-none fixed right-5 top-5 z-[100] w-[calc(100%-40px)] max-w-md">
@@ -1035,8 +1159,6 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
-            {/* PROGRESS BAR */}
-
             <div
               className={`absolute bottom-0 left-0 h-1 w-full ${
                 notification.type ===
@@ -1055,9 +1177,9 @@ export default function AdminUsersPage() {
         </div>
       )}
 
-      {/* =================================================
-          CONFIRM DELETE MODAL
-      ================================================= */}
+      {/* =====================================================
+          CONFIRM DELETE
+      ===================================================== */}
 
       {confirmModal && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
@@ -1070,11 +1192,15 @@ export default function AdminUsersPage() {
 
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg font-black text-[#123b3a]">
-                    {confirmModal.title}
+                    {
+                      confirmModal.title
+                    }
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    {confirmModal.message}
+                    {
+                      confirmModal.message
+                    }
                   </p>
                 </div>
 
@@ -1108,17 +1234,19 @@ export default function AdminUsersPage() {
                 }
                 className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-600 active:scale-[0.98]"
               >
-                {confirmModal.confirmText ||
-                  "Xác nhận"}
+                {
+                  confirmModal.confirmText ||
+                  "Xác nhận"
+                }
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* =================================================
+      {/* =====================================================
           HEADER
-      ================================================= */}
+      ===================================================== */}
 
       <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -1131,8 +1259,8 @@ export default function AdminUsersPage() {
           </h1>
 
           <p className="mt-2 text-sm text-slate-500">
-            Phân quyền và cập nhật thông
-            tin tài khoản.
+            Phân quyền, cập nhật tài khoản
+            và quản lý ghi danh khóa học.
           </p>
         </div>
 
@@ -1148,9 +1276,9 @@ export default function AdminUsersPage() {
         </button>
       </header>
 
-      {/* =================================================
+      {/* =====================================================
           TABLE CARD
-      ================================================= */}
+      ===================================================== */}
 
       <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(30,65,64,0.05)]">
         {/* SEARCH */}
@@ -1196,7 +1324,7 @@ export default function AdminUsersPage() {
         {/* TABLE */}
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px] text-left text-sm">
+          <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="bg-[#f7faf9] text-xs uppercase tracking-wider text-slate-500">
               <tr>
                 <th className="px-5 py-4">
@@ -1309,6 +1437,26 @@ export default function AdminUsersPage() {
 
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
+                          {/* GHI DANH */}
+
+                          <button
+                            type="button"
+                            title="Quản lý ghi danh"
+                            onClick={() =>
+                              openEnrollModal(
+                                user.taiKhoan,
+                              )
+                            }
+                            disabled={
+                              !!deleting
+                            }
+                            className="rounded-lg p-2 text-slate-400 transition hover:bg-amber-50 hover:text-amber-600 disabled:opacity-40"
+                          >
+                            <BookOpen className="h-4 w-4" />
+                          </button>
+
+                          {/* EDIT */}
+
                           <button
                             type="button"
                             title="Sửa người dùng"
@@ -1324,6 +1472,8 @@ export default function AdminUsersPage() {
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
+
+                          {/* DELETE */}
 
                           <button
                             type="button"
@@ -1402,9 +1552,9 @@ export default function AdminUsersPage() {
         )}
       </section>
 
-      {/* =================================================
-          FORM MODAL
-      ================================================= */}
+      {/* =====================================================
+          USER FORM MODAL
+      ===================================================== */}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm">
@@ -1412,6 +1562,8 @@ export default function AdminUsersPage() {
             onSubmit={submit}
             className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl"
           >
+            {/* HEADER */}
+
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-black text-[#123b3a]">
@@ -1439,11 +1591,14 @@ export default function AdminUsersPage() {
               </button>
             </div>
 
+            {/* FORM FIELDS */}
+
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {/* ACCOUNT */}
 
               <label className="text-sm font-semibold text-slate-600">
                 Tài khoản
+
                 <input
                   required
                   type="text"
@@ -1470,6 +1625,7 @@ export default function AdminUsersPage() {
 
               <label className="text-sm font-semibold text-slate-600">
                 Mật khẩu
+
                 {!editing && (
                   <span className="ml-1 text-red-500">
                     *
@@ -1512,6 +1668,7 @@ export default function AdminUsersPage() {
 
               <label className="text-sm font-semibold text-slate-600">
                 Họ tên
+
                 <input
                   required
                   type="text"
@@ -1537,6 +1694,7 @@ export default function AdminUsersPage() {
 
               <label className="text-sm font-semibold text-slate-600">
                 Email
+
                 <input
                   required
                   type="email"
@@ -1562,6 +1720,7 @@ export default function AdminUsersPage() {
 
               <label className="text-sm font-semibold text-slate-600">
                 Số điện thoại
+
                 <input
                   type="text"
                   value={
@@ -1586,6 +1745,7 @@ export default function AdminUsersPage() {
 
               <label className="text-sm font-semibold text-slate-600">
                 Mã nhóm
+
                 <input
                   required
                   type="text"
@@ -1697,6 +1857,20 @@ export default function AdminUsersPage() {
           </form>
         </div>
       )}
+
+      {/* =====================================================
+          ENROLLMENT MODAL
+      ===================================================== */}
+
+      <UserEnrollmentModal
+        isOpen={enrollModalOpen}
+        onClose={
+          closeEnrollModal
+        }
+        taiKhoan={
+          selectedUserForEnroll
+        }
+      />
     </div>
   );
 }

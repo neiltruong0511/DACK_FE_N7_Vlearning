@@ -1,9 +1,11 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { Edit3, ImagePlus, Plus, Search, Trash2 } from "lucide-react";
+// THÊM: Import Users
+import { Edit3, ImagePlus, Plus, Search, Trash2, Users } from "lucide-react";
 import { courseApi } from "@/services/courseApi";
 import { categoryApi } from "@/services/categoryApi";
+import CourseEnrollmentModal from "@/components/admin/CourseEnrollmentModal";
 
 type Course = {
   maKhoaHoc: string;
@@ -40,6 +42,13 @@ export default function AdminCoursesPage() {
     hinhAnh: "",
   });
   const pageSize = 8;
+
+  // THÊM: State cho Modal Quản lý Học viên
+  const [enrollModalOpen, setEnrollModalOpen] = useState(false);
+  const [selectedCourseForEnroll, setSelectedCourseForEnroll] = useState<{
+    maKhoaHoc: string;
+    tenKhoaHoc: string;
+  } | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -84,6 +93,15 @@ export default function AdminCoursesPage() {
       maDanhMucKhoaHoc: course?.maDanhMucKhoaHoc || "",
       hinhAnh: course?.hinhAnh || "",
     });
+  };
+
+  // THÊM: Hàm mở Modal ghi danh học viên
+  const openEnrollModal = (course: Course) => {
+    setSelectedCourseForEnroll({
+      maKhoaHoc: course.maKhoaHoc,
+      tenKhoaHoc: course.tenKhoaHoc,
+    });
+    setEnrollModalOpen(true);
   };
 
   const submit = async (event: FormEvent) => {
@@ -204,6 +222,15 @@ export default function AdminCoursesPage() {
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex justify-end gap-2">
+                        {/* THÊM: Nút Quản lý Học viên */}
+                        <button
+                          type="button"
+                          title="Quản lý học viên"
+                          onClick={() => openEnrollModal(course)}
+                          className="rounded-lg p-2 text-slate-400 hover:bg-amber-50 hover:text-amber-600"
+                        >
+                          <Users className="h-4 w-4" />
+                        </button>
                         <button
                           type="button"
                           title="Sửa khóa học"
@@ -362,6 +389,14 @@ export default function AdminCoursesPage() {
           </form>
         </div>
       ) : null}
+
+      {/* THÊM: Hiển thị Modal Ghi danh khóa học */}
+      <CourseEnrollmentModal
+        isOpen={enrollModalOpen}
+        onClose={() => setEnrollModalOpen(false)}
+        maKhoaHoc={selectedCourseForEnroll?.maKhoaHoc || null}
+        tenKhoaHoc={selectedCourseForEnroll?.tenKhoaHoc}
+      />
     </div>
   );
 }

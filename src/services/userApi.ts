@@ -1,9 +1,9 @@
 import { axiosClient } from "@/lib/axios";
 
 export const userApi = {
-  // =========================
+  // =========================================================
   // PROFILE
-  // =========================
+  // =========================================================
 
   getProfile() {
     return axiosClient.post("/QuanLyNguoiDung/ThongTinNguoiDung");
@@ -13,23 +13,23 @@ export const userApi = {
     return axiosClient.post("/QuanLyNguoiDung/ThongTinTaiKhoan");
   },
 
-  // =========================
+  // =========================================================
   // USER TYPES
-  // =========================
+  // =========================================================
 
   getUserTypes() {
     return axiosClient.get(
-      "/QuanLyNguoiDung/LayDanhSachLoaiNguoiDung"
+      "/QuanLyNguoiDung/LayDanhSachLoaiNguoiDung",
     );
   },
 
-  // =========================
+  // =========================================================
   // GET USERS
-  // =========================
+  // =========================================================
 
   getUsers() {
     return axiosClient.get(
-      "/QuanLyNguoiDung/LayDanhSachNguoiDung"
+      "/QuanLyNguoiDung/LayDanhSachNguoiDung",
     );
   },
 
@@ -41,7 +41,7 @@ export const userApi = {
           page,
           pageSize,
         },
-      }
+      },
     );
   },
 
@@ -52,25 +52,25 @@ export const userApi = {
         params: {
           tuKhoa: keyword,
         },
-      }
+      },
     );
   },
 
-  // =========================
+  // =========================================================
   // CRUD USER
-  // =========================
+  // =========================================================
 
   addUser(data: Record<string, unknown>) {
     return axiosClient.post(
       "/QuanLyNguoiDung/ThemNguoiDung",
-      data
+      data,
     );
   },
 
   updateUser(data: Record<string, unknown>) {
     return axiosClient.put(
       "/QuanLyNguoiDung/CapNhatThongTinNguoiDung",
-      data
+      data,
     );
   },
 
@@ -81,62 +81,121 @@ export const userApi = {
         params: {
           TaiKhoan: taiKhoan,
         },
-      }
+      },
     );
   },
 
-  // =========================
-  // COURSE USER
-  // =========================
+  // =========================================================
+  // GHI DANH - QUẢN LÝ THEO NGƯỜI DÙNG
+  // =========================================================
 
+  /**
+   * Lấy danh sách khóa học chưa ghi danh của user
+   *
+   * API CyberSoft dùng Query Parameter:
+   * ?TaiKhoan=...
+   */
   getUnenrolledCourses(taiKhoan: string) {
     return axiosClient.post(
       "/QuanLyNguoiDung/LayDanhSachKhoaHocChuaGhiDanh",
+      null,
       {
-        taiKhoan,
-      }
+        params: {
+          TaiKhoan: taiKhoan,
+        },
+      },
     );
   },
 
+  /**
+   * Lấy danh sách khóa học đang chờ xét duyệt
+   *
+   * API dùng Body:
+   * {
+   *   taiKhoan: "..."
+   * }
+   */
   getPendingCourses(taiKhoan: string) {
     return axiosClient.post(
       "/QuanLyNguoiDung/LayDanhSachKhoaHocChoXetDuyet",
       {
         taiKhoan,
-      }
+      },
     );
   },
 
+  /**
+   * Lấy danh sách khóa học đã xét duyệt
+   *
+   * API dùng Body:
+   * {
+   *   taiKhoan: "..."
+   * }
+   */
   getApprovedCourses(taiKhoan: string) {
     return axiosClient.post(
       "/QuanLyNguoiDung/LayDanhSachKhoaHocDaXetDuyet",
       {
         taiKhoan,
-      }
+      },
     );
   },
 
+  // =========================================================
+  // GHI DANH - QUẢN LÝ THEO KHÓA HỌC
+  // =========================================================
+
+  /**
+   * Lấy danh sách người dùng chưa ghi danh khóa học
+   *
+   * Body:
+   * {
+   *   maKhoaHoc: "..."
+   * }
+   */
   getUnenrolledUsers(maKhoaHoc: string) {
     return axiosClient.post(
       "/QuanLyNguoiDung/LayDanhSachNguoiDungChuaGhiDanh",
       {
         maKhoaHoc,
-      }
+      },
     );
   },
 
-  getPendingInstructors() {
+  /**
+   * Lấy danh sách học viên đang chờ xét duyệt
+   *
+   * API:
+   * LayDanhSachHocVienChoXetDuyet
+   *
+   * Body:
+   * {
+   *   maKhoaHoc: "..."
+   * }
+   */
+  getPendingStudents(maKhoaHoc: string) {
     return axiosClient.post(
-      "/QuanLyNguoiDung/LayDanhSachHocVienChoXetDuyet"
+      "/QuanLyNguoiDung/LayDanhSachHocVienChoXetDuyet",
+      {
+        maKhoaHoc,
+      },
     );
   },
 
+  /**
+   * Lấy danh sách học viên của khóa học
+   *
+   * Body:
+   * {
+   *   maKhoaHoc: "..."
+   * }
+   */
   getCourseStudents(maKhoaHoc: string) {
     return axiosClient.post(
       "/QuanLyNguoiDung/LayDanhSachHocVienKhoaHoc",
       {
         maKhoaHoc,
-      }
+      },
     );
   },
 };
