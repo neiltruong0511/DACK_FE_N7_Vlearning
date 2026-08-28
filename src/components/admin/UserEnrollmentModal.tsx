@@ -30,12 +30,15 @@ export default function UserEnrollmentModal({
   >("unregistered");
 
   // State quản lý Confirm Modal
-  const [courseToDelete, setCourseToDelete] = useState<{id: string, name: string} | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const queryClient = useQueryClient();
   const toast = useToast();
-  
+
   const { unregistered, pending, approved } = useCoursesByUser(taiKhoan || "");
 
   const isLoading =
@@ -59,10 +62,14 @@ export default function UserEnrollmentModal({
     if (!taiKhoan) return;
     try {
       await courseApi.enrollCourse(maKhoaHoc, taiKhoan);
-      queryClient.invalidateQueries({ queryKey: ["unregisteredCourses", taiKhoan] });
+      queryClient.invalidateQueries({
+        queryKey: ["unregisteredCourses", taiKhoan],
+      });
       queryClient.invalidateQueries({ queryKey: ["pendingCourses", taiKhoan] });
-      queryClient.invalidateQueries({ queryKey: ["approvedCourses", taiKhoan] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["approvedCourses", taiKhoan],
+      });
+
       toast.success("Thao tác ghi danh/duyệt thành công!");
     } catch (error) {
       toast.error("Có lỗi xảy ra khi thao tác!");
@@ -75,10 +82,14 @@ export default function UserEnrollmentModal({
     setIsDeleting(true);
     try {
       await courseApi.cancelEnrollment(courseToDelete.id, taiKhoan);
-      queryClient.invalidateQueries({ queryKey: ["unregisteredCourses", taiKhoan] });
+      queryClient.invalidateQueries({
+        queryKey: ["unregisteredCourses", taiKhoan],
+      });
       queryClient.invalidateQueries({ queryKey: ["pendingCourses", taiKhoan] });
-      queryClient.invalidateQueries({ queryKey: ["approvedCourses", taiKhoan] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["approvedCourses", taiKhoan],
+      });
+
       toast.success("Đã hủy ghi danh thành công!");
       setCourseToDelete(null); // Đóng modal xác nhận
     } catch (error) {
@@ -148,22 +159,44 @@ export default function UserEnrollmentModal({
 
                 <div className="flex gap-2">
                   {activeTab === "unregistered" && (
-                    <button onClick={() => handleEnroll(course.maKhoaHoc)} className="flex items-center gap-1 rounded-lg bg-[#e4c77b] px-4 py-2 text-sm font-bold text-[#123b3a] transition hover:brightness-110">
+                    <button
+                      onClick={() => handleEnroll(course.maKhoaHoc)}
+                      className="flex items-center gap-1 rounded-lg bg-[#e4c77b] px-4 py-2 text-sm font-bold text-[#123b3a] transition hover:brightness-110"
+                    >
                       Ghi danh
                     </button>
                   )}
                   {activeTab === "pending" && (
                     <>
-                      <button onClick={() => handleEnroll(course.maKhoaHoc)} className="flex items-center gap-1 rounded-lg bg-[#123b3a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a5150]">
+                      <button
+                        onClick={() => handleEnroll(course.maKhoaHoc)}
+                        className="flex items-center gap-1 rounded-lg bg-[#123b3a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a5150]"
+                      >
                         <Check className="h-4 w-4" /> Duyệt
                       </button>
-                      <button onClick={() => setCourseToDelete({ id: course.maKhoaHoc, name: course.tenKhoaHoc })} className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
+                      <button
+                        onClick={() =>
+                          setCourseToDelete({
+                            id: course.maKhoaHoc,
+                            name: course.tenKhoaHoc,
+                          })
+                        }
+                        className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200"
+                      >
                         <X className="h-4 w-4" /> Hủy
                       </button>
                     </>
                   )}
                   {activeTab === "approved" && (
-                    <button onClick={() => setCourseToDelete({ id: course.maKhoaHoc, name: course.tenKhoaHoc })} className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
+                    <button
+                      onClick={() =>
+                        setCourseToDelete({
+                          id: course.maKhoaHoc,
+                          name: course.tenKhoaHoc,
+                        })
+                      }
+                      className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200"
+                    >
                       <Trash2 className="h-4 w-4" /> Xóa
                     </button>
                   )}

@@ -5,36 +5,47 @@ export const courseApi = {
   // LẤY TẤT CẢ KHÓA HỌC
   // =========================
   getCourses() {
-    return axiosClient.get("/QuanLyKhoaHoc/LayDanhSachKhoaHoc");
+    return axiosClient.get(
+      "/QuanLyKhoaHoc/LayDanhSachKhoaHoc",
+    );
   },
 
   // =========================
   // CHI TIẾT KHÓA HỌC
   // =========================
   getCourseDetail(maKhoaHoc: string) {
-    return axiosClient.get("/QuanLyKhoaHoc/LayThongTinKhoaHoc", {
-      params: {
-        maKhoaHoc,
+    return axiosClient.get(
+      "/QuanLyKhoaHoc/LayThongTinKhoaHoc",
+      {
+        params: {
+          maKhoaHoc,
+        },
       },
-    });
+    );
   },
 
   // =========================
   // KHÓA HỌC THEO DANH MỤC
   // =========================
   getCourseByCategory(maDanhMuc: string) {
-    return axiosClient.get("/QuanLyKhoaHoc/LayKhoaHocTheoDanhMuc", {
-      params: {
-        maDanhMuc,
-        maNhom: "GP01",
+    return axiosClient.get(
+      "/QuanLyKhoaHoc/LayKhoaHocTheoDanhMuc",
+      {
+        params: {
+          maDanhMuc,
+          maNhom: "GP01",
+        },
       },
-    });
+    );
   },
 
   // =========================
   // PHÂN TRANG
   // =========================
-  getCoursePagination(page: number, pageSize: number) {
+  getCoursePagination(
+    page: number,
+    pageSize: number,
+  ) {
     return axiosClient.get(
       "/QuanLyKhoaHoc/LayDanhSachKhoaHoc_PhanTrang",
       {
@@ -51,73 +62,140 @@ export const courseApi = {
   // TÌM KIẾM
   // =========================
   searchCourses(keyword: string) {
-    return axiosClient.get("/QuanLyKhoaHoc/LayDanhSachKhoaHoc", {
-      params: {
-        tenKhoaHoc: keyword,
+    return axiosClient.get(
+      "/QuanLyKhoaHoc/LayDanhSachKhoaHoc",
+      {
+        params: {
+          tenKhoaHoc: keyword,
+        },
       },
-    });
+    );
   },
 
   // =========================
   // ĐĂNG KÝ KHÓA HỌC
   // =========================
-  registerCourse(maKhoaHoc: string, taiKhoan: string) {
-    return axiosClient.post("/QuanLyKhoaHoc/DangKyKhoaHoc", {
-      maKhoaHoc,
-      taiKhoan,
-    });
+  registerCourse(
+    maKhoaHoc: string,
+    taiKhoan: string,
+  ) {
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/DangKyKhoaHoc",
+      {
+        maKhoaHoc,
+        taiKhoan,
+      },
+    );
   },
 
   // =========================
   // GHI DANH KHÓA HỌC
   // =========================
-  enrollCourse(maKhoaHoc: string, taiKhoan: string) {
-    return axiosClient.post("/QuanLyKhoaHoc/GhiDanhKhoaHoc", {
-      maKhoaHoc,
-      taiKhoan,
-    });
+  enrollCourse(
+    maKhoaHoc: string,
+    taiKhoan: string,
+  ) {
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/GhiDanhKhoaHoc",
+      {
+        maKhoaHoc,
+        taiKhoan,
+      },
+    );
   },
 
   // =========================
   // HỦY GHI DANH
   // =========================
-  cancelEnrollment(maKhoaHoc: string, taiKhoan: string) {
-    return axiosClient.post("/QuanLyKhoaHoc/HuyGhiDanh", {
-      maKhoaHoc,
-      taiKhoan,
-    });
+  cancelEnrollment(
+    maKhoaHoc: string,
+    taiKhoan: string,
+  ) {
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/HuyGhiDanh",
+      {
+        maKhoaHoc,
+        taiKhoan,
+      },
+    );
   },
 
+  // =========================
+  // THÊM KHÓA HỌC
+  // =========================
   addCourse(data: Record<string, unknown>) {
-    return axiosClient.post("/QuanLyKhoaHoc/ThemKhoaHoc", data);
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/ThemKhoaHoc",
+      data,
+    );
   },
 
+  // =========================
+  // CẬP NHẬT KHÓA HỌC
+  // =========================
   updateCourse(data: Record<string, unknown>) {
-    return axiosClient.put("/QuanLyKhoaHoc/CapNhatKhoaHoc", data);
+    return axiosClient.put(
+      "/QuanLyKhoaHoc/CapNhatKhoaHoc",
+      data,
+    );
   },
 
+  // =========================
+  // XÓA KHÓA HỌC
+  // =========================
   deleteCourse(maKhoaHoc: string) {
-    return axiosClient.delete("/QuanLyKhoaHoc/XoaKhoaHoc", {
-      params: { MaKhoaHoc: maKhoaHoc },
-    });
+    return axiosClient.delete(
+      "/QuanLyKhoaHoc/XoaKhoaHoc",
+      {
+        params: {
+          MaKhoaHoc: maKhoaHoc,
+        },
+      },
+    );
   },
 
+  // =========================
+  // UPLOAD HÌNH ẢNH KHÓA HỌC
+  // =========================
   uploadCourseImage(data: FormData) {
-    return axiosClient.post("/QuanLyKhoaHoc/UploadHinhAnhKhoaHoc", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/UploadHinhAnhKhoaHoc",
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
   },
 
+  // =========================
+  // THÊM KHÓA HỌC + HÌNH
+  // =========================
   addCourseWithImage(data: FormData) {
-    return axiosClient.post("/QuanLyKhoaHoc/ThemKhoaHocUploadHinh", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/ThemKhoaHocUploadHinh",
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
   },
 
+  // =========================
+  // CẬP NHẬT KHÓA HỌC + HÌNH
+  // =========================
   updateCourseWithImage(data: FormData) {
-    return axiosClient.post("/QuanLyKhoaHoc/CapNhatKhoaHocUpload", data, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    return axiosClient.post(
+      "/QuanLyKhoaHoc/CapNhatKhoaHocUpload",
+      data,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      },
+    );
   },
-
 };
