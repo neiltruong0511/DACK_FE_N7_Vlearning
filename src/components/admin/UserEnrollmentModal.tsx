@@ -4,6 +4,10 @@ import { useState } from "react";
 import Modal from "@/components/ui/Modal";
 import { useCoursesByUser } from "@/hooks/useEnroll";
 import { BookOpen, Check, Clock, Plus, Trash2, X } from "lucide-react";
+import { courseApi } from "@/services/courseApi";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/components/common/ToastProvider";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface UserEnrollmentModalProps {
   isOpen: boolean;
@@ -11,7 +15,6 @@ interface UserEnrollmentModalProps {
   taiKhoan: string | null;
 }
 
-// Thêm Interface định nghĩa kiểu dữ liệu cho Khóa học để fix lỗi "any"
 interface CourseData {
   maKhoaHoc: string;
   tenKhoaHoc: string;
@@ -26,30 +29,22 @@ export default function UserEnrollmentModal({
     "unregistered" | "pending" | "approved"
   >("unregistered");
 
+  // State quản lý Confirm Modal
+  const [courseToDelete, setCourseToDelete] = useState<{id: string, name: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  
   const { unregistered, pending, approved } = useCoursesByUser(taiKhoan || "");
 
   const isLoading =
     unregistered.isLoading || pending.isLoading || approved.isLoading;
 
   const tabs = [
-    {
-      id: "unregistered",
-      label: "Chưa ghi danh",
-      count: unregistered.data?.data?.length || 0,
-      icon: Plus,
-    },
-    {
-      id: "pending",
-      label: "Chờ xét duyệt",
-      count: pending.data?.data?.length || 0,
-      icon: Clock,
-    },
-    {
-      id: "approved",
-      label: "Đã ghi danh",
-      count: approved.data?.data?.length || 0,
-      icon: Check,
-    },
+    { id: "unregistered", label: "Chưa ghi danh", count: unregistered.data?.data?.length || 0, icon: Plus },
+    { id: "pending", label: "Chờ xét duyệt", count: pending.data?.data?.length || 0, icon: Clock },
+    { id: "approved", label: "Đã ghi danh", count: approved.data?.data?.length || 0, icon: Check },
   ] as const;
 
   const currentData =
@@ -58,6 +53,40 @@ export default function UserEnrollmentModal({
       : activeTab === "pending"
         ? pending.data?.data
         : approved.data?.data;
+
+  // HÀM XỬ LÝ GHI DANH VÀ DUYỆT
+  const handleEnroll = async (maKhoaHoc: string) => {
+    if (!taiKhoan) return;
+    try {
+      await courseApi.enrollCourse(maKhoaHoc, taiKhoan);
+      queryClient.invalidateQueries({ queryKey: ["unregisteredCourses", taiKhoan] });
+      queryClient.invalidateQueries({ queryKey: ["pendingCourses", taiKhoan] });
+      queryClient.invalidateQueries({ queryKey: ["approvedCourses", taiKhoan] });
+      
+      toast.success("Thao tác ghi danh/duyệt thành công!");
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi thao tác!");
+    }
+  };
+
+  // HÀM XỬ LÝ HỦY VÀ XÓA (KHI ĐÃ BẤM XÁC NHẬN TRÊN CONFIRM MODAL)
+  const handleCancel = async () => {
+    if (!taiKhoan || !courseToDelete) return;
+    setIsDeleting(true);
+    try {
+      await courseApi.cancelEnrollment(courseToDelete.id, taiKhoan);
+      queryClient.invalidateQueries({ queryKey: ["unregisteredCourses", taiKhoan] });
+      queryClient.invalidateQueries({ queryKey: ["pendingCourses", taiKhoan] });
+      queryClient.invalidateQueries({ queryKey: ["approvedCourses", taiKhoan] });
+      
+      toast.success("Đã hủy ghi danh thành công!");
+      setCourseToDelete(null); // Đóng modal xác nhận
+    } catch (error) {
+      toast.error("Có lỗi xảy ra khi hủy ghi danh!");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <Modal
@@ -98,7 +127,6 @@ export default function UserEnrollmentModal({
           </div>
         ) : currentData && currentData.length > 0 ? (
           <ul className="space-y-3">
-            {/* Đã sửa course: any thành course: CourseData */}
             {currentData.map((course: CourseData, idx: number) => (
               <li
                 key={idx}
@@ -120,22 +148,22 @@ export default function UserEnrollmentModal({
 
                 <div className="flex gap-2">
                   {activeTab === "unregistered" && (
-                    <button className="flex items-center gap-1 rounded-lg bg-[#e4c77b] px-4 py-2 text-sm font-bold text-[#123b3a] transition hover:brightness-110">
+                    <button onClick={() => handleEnroll(course.maKhoaHoc)} className="flex items-center gap-1 rounded-lg bg-[#e4c77b] px-4 py-2 text-sm font-bold text-[#123b3a] transition hover:brightness-110">
                       Ghi danh
                     </button>
                   )}
                   {activeTab === "pending" && (
                     <>
-                      <button className="flex items-center gap-1 rounded-lg bg-[#123b3a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a5150]">
+                      <button onClick={() => handleEnroll(course.maKhoaHoc)} className="flex items-center gap-1 rounded-lg bg-[#123b3a] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a5150]">
                         <Check className="h-4 w-4" /> Duyệt
                       </button>
-                      <button className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
+                      <button onClick={() => setCourseToDelete({ id: course.maKhoaHoc, name: course.tenKhoaHoc })} className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
                         <X className="h-4 w-4" /> Hủy
                       </button>
                     </>
                   )}
                   {activeTab === "approved" && (
-                    <button className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
+                    <button onClick={() => setCourseToDelete({ id: course.maKhoaHoc, name: course.tenKhoaHoc })} className="flex items-center gap-1 rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200">
                       <Trash2 className="h-4 w-4" /> Xóa
                     </button>
                   )}
@@ -150,6 +178,16 @@ export default function UserEnrollmentModal({
           </div>
         )}
       </div>
+
+      {/* TÍCH HỢP CONFIRM MODAL TẠI ĐÂY */}
+      <ConfirmModal
+        isOpen={!!courseToDelete}
+        onClose={() => setCourseToDelete(null)}
+        onConfirm={handleCancel}
+        title="Hủy khóa học?"
+        description={`Bạn sắp hủy ghi danh khóa học <strong>${courseToDelete?.name}</strong>.`}
+        isLoading={isDeleting}
+      />
     </Modal>
   );
 }
