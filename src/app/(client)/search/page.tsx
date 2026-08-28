@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useSearchCourse } from "@/hooks/useCourse";
@@ -29,32 +29,6 @@ function SearchContent() {
   const [sortBy, setSortBy] = useState<SortOption>("newest");
 
   const [viewRange, setViewRange] = useState<ViewOption>("all");
-
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
-
-  // =====================================================
-  // FAVORITES
-  // =====================================================
-
-  const [favorites, setFavorites] = useState<string[]>([]);
-
-  useEffect(() => {
-    try {
-      const storedFavorites = localStorage.getItem("FAVORITE_COURSES");
-
-      if (!storedFavorites) {
-        return;
-      }
-
-      const parsed = JSON.parse(storedFavorites);
-
-      if (Array.isArray(parsed)) {
-        setFavorites(parsed.map((item) => String(item)));
-      }
-    } catch (error) {
-      console.error("Không thể đọc danh sách yêu thích:", error);
-    }
-  }, []);
 
   // =====================================================
   // CATEGORIES
@@ -125,25 +99,23 @@ function SearchContent() {
     }
 
     // =================================================
-    // 3. FAVORITES
-    // =================================================
-
-    if (onlyFavorites) {
-      result = result.filter((course: any) =>
-        favorites.includes(String(course.maKhoaHoc)),
-      );
-    }
-
-    // =================================================
-    // 4. SORT
+    // 3. SORT
     // =================================================
 
     switch (sortBy) {
+      // -----------------------------------------------
+      // NHIỀU LƯỢT XEM
+      // -----------------------------------------------
+
       case "views":
         result.sort(
           (a: any, b: any) => Number(b.luotXem || 0) - Number(a.luotXem || 0),
         );
         break;
+
+      // -----------------------------------------------
+      // TÊN A -> Z
+      // -----------------------------------------------
 
       case "name-asc":
         result.sort((a: any, b: any) =>
@@ -154,6 +126,10 @@ function SearchContent() {
         );
         break;
 
+      // -----------------------------------------------
+      // TÊN Z -> A
+      // -----------------------------------------------
+
       case "name-desc":
         result.sort((a: any, b: any) =>
           String(b.tenKhoaHoc || "").localeCompare(
@@ -162,6 +138,10 @@ function SearchContent() {
           ),
         );
         break;
+
+      // -----------------------------------------------
+      // MỚI NHẤT
+      // -----------------------------------------------
 
       case "newest":
       default:
@@ -172,21 +152,29 @@ function SearchContent() {
 
           return dateB - dateA;
         });
+
         break;
     }
 
     return result;
-  }, [data, category, sortBy, viewRange, onlyFavorites, favorites]);
+  }, [data, category, sortBy, viewRange]);
 
   // =====================================================
   // LOADING
   // =====================================================
-  // QUAN TRỌNG:
-  // useMemo ở trên if này để Hooks không bị đổi thứ tự.
-  // =====================================================
 
   if (isLoading) {
-    return <section className="py-20 text-center">Đang tìm kiếm...</section>;
+    return (
+      <section className="min-h-[500px] py-20 text-center">
+        <div className="flex flex-col items-center justify-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+          <p className="mt-4 text-sm font-medium text-slate-500">
+            Đang tìm kiếm khóa học...
+          </p>
+        </div>
+      </section>
+    );
   }
 
   // =====================================================
@@ -195,7 +183,15 @@ function SearchContent() {
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-12">
+      {/* =================================================
+          HERO
+      ================================================= */}
+
       <SearchHero keyword={keyword} total={filteredCourses.length} />
+
+      {/* =================================================
+          CONTENT
+      ================================================= */}
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[280px_1fr]">
         {/* =================================================
@@ -210,34 +206,63 @@ function SearchContent() {
           setSortBy={setSortBy}
           viewRange={viewRange}
           setViewRange={setViewRange}
-          onlyFavorites={onlyFavorites}
-          setOnlyFavorites={setOnlyFavorites}
         />
 
         {/* =================================================
             RESULTS
         ================================================= */}
 
-        <div>
+        <div className="min-w-0">
           {filteredCourses.length === 0 ? (
-            <div className="flex h-[400px] flex-col items-center justify-center rounded-3xl border bg-white shadow-sm">
+            <div className="flex min-h-[400px] flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white px-6 text-center shadow-sm">
               <img
                 src="/empty-search.svg"
                 alt="Không tìm thấy khóa học"
-                className="w-64"
+                className="w-64 max-w-full"
               />
 
-              <h2 className="mt-6 text-3xl font-bold text-slate-900">
+              <h2 className="mt-6 text-2xl font-bold text-slate-900">
                 Không tìm thấy khóa học
               </h2>
 
-              <p className="mt-2 text-gray-500">Hãy thử thay đổi bộ lọc.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Hãy thử thay đổi từ khóa hoặc bộ lọc.
+              </p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {filteredCourses.map((course: any) => (
-                <SearchCard key={course.maKhoaHoc} course={course} />
-              ))}
+            <div className="space-y-6">
+              {/* =================================================
+                  RESULT HEADER
+              ================================================= */}
+
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-slate-500">
+                  Tìm thấy{" "}
+                  <span className="font-bold text-slate-900">
+                    {filteredCourses.length}
+                  </span>{" "}
+                  khóa học
+                </p>
+
+                {keyword && (
+                  <p className="text-sm text-slate-400">
+                    Từ khóa:{" "}
+                    <span className="font-semibold text-slate-600">
+                      "{keyword}"
+                    </span>
+                  </p>
+                )}
+              </div>
+
+              {/* =================================================
+                  COURSE LIST
+              ================================================= */}
+
+              <div className="space-y-8">
+                {filteredCourses.map((course: any) => (
+                  <SearchCard key={course.maKhoaHoc} course={course} />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -246,11 +271,23 @@ function SearchContent() {
   );
 }
 
+// =====================================================
+// PAGE
+// =====================================================
+
 export default function SearchPage() {
   return (
     <Suspense
       fallback={
-        <section className="py-20 text-center">Đang tải tìm kiếm...</section>
+        <section className="min-h-[500px] py-20 text-center">
+          <div className="flex flex-col items-center justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+            <p className="mt-4 text-sm font-medium text-slate-500">
+              Đang tải tìm kiếm...
+            </p>
+          </div>
+        </section>
       }
     >
       <SearchContent />
