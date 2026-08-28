@@ -47,24 +47,9 @@ export default function CourseEnrollmentModal({
     unregistered.isLoading || pending.isLoading || approved.isLoading;
 
   const tabs = [
-    {
-      id: "unregistered",
-      label: "Chưa ghi danh",
-      count: unregistered.data?.data?.length || 0,
-      icon: Plus,
-    },
-    {
-      id: "pending",
-      label: "Chờ xét duyệt",
-      count: pending.data?.data?.length || 0,
-      icon: Clock,
-    },
-    {
-      id: "approved",
-      label: "Đã duyệt",
-      count: approved.data?.data?.length || 0,
-      icon: Check,
-    },
+    { id: "unregistered", label: "Chưa ghi danh", count: unregistered.data?.data?.length || 0, icon: Plus },
+    { id: "pending", label: "Chờ xét duyệt", count: pending.data?.data?.length || 0, icon: Clock },
+    { id: "approved", label: "Đã duyệt", count: approved.data?.data?.length || 0, icon: Check },
   ] as const;
 
   const currentData =
