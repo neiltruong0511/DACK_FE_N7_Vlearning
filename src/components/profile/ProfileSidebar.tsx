@@ -41,15 +41,6 @@ export default function ProfileSidebar({ activeTab, onChange }: Props) {
           />
           Yêu thích
         </button>
-
-        {/* CÀI ĐẶT */}
-        <button
-          type="button"
-          className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-        >
-          <Settings size={20} />
-          Cài đặt
-        </button>
       </nav>
     </aside>
   );

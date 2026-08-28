@@ -21,7 +21,7 @@ import {
   removeFavoriteCourse,
   isFavoriteCourse,
 } from "@/lib/favorite";
-
+import { getImageUrl } from "@/lib/image";
 import { useToast } from "@/components/common/ToastProvider";
 
 interface CourseCardProps {

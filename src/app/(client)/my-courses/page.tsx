@@ -10,11 +10,12 @@ import {
   AlertTriangle,
   ArrowRight,
   GraduationCap,
-  CheckCircle2,
 } from "lucide-react";
 
 import { useCourses, useCancelEnrollment } from "@/hooks/useCourse";
 import { useToast } from "@/components/common/ToastProvider";
+import { getImageUrl } from "@/lib/image";
+const PLACEHOLDER_IMAGE = "/course-placeholder.jpg";
 
 export default function MyCoursesPage() {
   const { data: courses, isLoading } = useCourses();
@@ -25,68 +26,113 @@ export default function MyCoursesPage() {
   const [keyword, setKeyword] = useState("");
   const [courseToCancel, setCourseToCancel] = useState<any>(null);
 
-  // =========================
+  // =====================================================
   // LẤY KHÓA HỌC ĐÃ ĐĂNG KÝ
-  // =========================
+  // =====================================================
+
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
     const stored = localStorage.getItem("MY_COURSES");
 
-    if (!stored) return;
+    if (!stored) {
+      setMyCourseIds([]);
+      return;
+    }
 
     try {
       const data = JSON.parse(stored);
 
       if (Array.isArray(data)) {
         setMyCourseIds(data);
+      } else {
+        setMyCourseIds([]);
       }
-    } catch {
+    } catch (error) {
+      console.error("MY_COURSES PARSE ERROR:", error);
       setMyCourseIds([]);
     }
   }, []);
 
-  // =========================
+  // =====================================================
   // LỌC KHÓA HỌC CỦA TÔI
-  // =========================
+  // =====================================================
+
   const myCourses = useMemo(() => {
-    if (!courses) return [];
+    if (!Array.isArray(courses)) {
+      return [];
+    }
 
     return courses.filter((course: any) =>
       myCourseIds.includes(course.maKhoaHoc),
     );
   }, [courses, myCourseIds]);
 
-  // =========================
+  // =====================================================
   // TÌM KIẾM
-  // =========================
+  // =====================================================
+
   const filteredCourses = useMemo(() => {
     const search = keyword.trim().toLowerCase();
 
-    if (!search) return myCourses;
+    if (!search) {
+      return myCourses;
+    }
 
-    return myCourses.filter((course: any) =>
-      course.tenKhoaHoc?.toLowerCase().includes(search),
-    );
+    return myCourses.filter((course: any) => {
+      const name = String(course.tenKhoaHoc || "").toLowerCase();
+
+      const description = String(course.moTa || "").toLowerCase();
+
+      return name.includes(search) || description.includes(search);
+    });
   }, [myCourses, keyword]);
 
-  // =========================
+  // =====================================================
   // URL ẢNH
-  // =========================
+  // =====================================================
+
   const getImageUrl = (image?: string) => {
-    if (!image) {
-      return "/images/course-placeholder.jpg";
+    if (!image || !image.trim()) {
+      return PLACEHOLDER_IMAGE;
     }
 
-    if (image.startsWith("http://") || image.startsWith("https://")) {
-      return image;
+    const imageName = image.trim();
+
+    if (imageName.startsWith("http://") || imageName.startsWith("https://")) {
+      return imageName;
     }
 
-    return `https://elearningnew.cybersoft.edu.vn/hinhanh/${image}`;
+    return `https://elearningnew.cybersoft.edu.vn/hinhanh/${imageName}`;
   };
 
-  // =========================
-  // HỦY KHÓA HỌC
-  // =========================
+  // =====================================================
+  // XÓA KHÓA HỌC KHỎI LOCALSTORAGE
+  // =====================================================
+
+  const removeCourseFromMyCourses = (courseId: string) => {
+    if (typeof window === "undefined") return;
+
+    setMyCourseIds((prev) => {
+      const updatedCourses = prev.filter((id) => id !== courseId);
+
+      localStorage.setItem("MY_COURSES", JSON.stringify(updatedCourses));
+
+      return updatedCourses;
+    });
+
+    setCourseToCancel(null);
+
+    toast.success("Hủy khóa học thành công!");
+  };
+
+  // =====================================================
+  // MỞ MODAL HỦY KHÓA HỌC
+  // =====================================================
+
   const handleCancelCourse = (course: any) => {
+    if (typeof window === "undefined") return;
+
     const userInfo = localStorage.getItem("USER_INFO");
 
     if (!userInfo) {
@@ -111,26 +157,37 @@ export default function MyCoursesPage() {
     setCourseToCancel(course);
   };
 
+  // =====================================================
+  // XÁC NHẬN HỦY KHÓA HỌC
+  // =====================================================
+
   const confirmCancelCourse = () => {
     const course = courseToCancel;
+
     if (!course) return;
 
-    setCourseToCancel(null);
+    if (typeof window === "undefined") return;
+
     const userInfo = localStorage.getItem("USER_INFO");
+
     if (!userInfo) {
+      setCourseToCancel(null);
       toast.error("Vui lòng đăng nhập lại!");
       return;
     }
 
     let user;
+
     try {
       user = JSON.parse(userInfo);
     } catch {
+      setCourseToCancel(null);
       toast.error("Thông tin tài khoản không hợp lệ!");
       return;
     }
 
     if (!user?.taiKhoan) {
+      setCourseToCancel(null);
       toast.error("Không tìm thấy tài khoản!");
       return;
     }
@@ -141,46 +198,79 @@ export default function MyCoursesPage() {
         taiKhoan: user.taiKhoan,
       },
       {
+        // =================================================
+        // API THỰC SỰ TRẢ SUCCESS
+        // =================================================
+
         onSuccess: () => {
-          const updatedCourses = myCourseIds.filter(
-            (id) => id !== course.maKhoaHoc,
-          );
-
-          setMyCourseIds(updatedCourses);
-
-          localStorage.setItem("MY_COURSES", JSON.stringify(updatedCourses));
-
-          toast.success("Hủy khóa học thành công!");
+          removeCourseFromMyCourses(course.maKhoaHoc);
         },
+
+        // =================================================
+        // CYBERSOFT CÓ TRƯỜNG HỢP:
+        // HTTP 500 NHƯNG CONTENT = "Khóa học đã được hủy!"
+        // =================================================
 
         onError: (error: any) => {
           console.error("CANCEL COURSE ERROR:", error);
-          console.error("API:", error.response?.data);
 
-          const message =
-            error.response?.data?.content ||
-            error.response?.data?.message ||
-            "Không thể hủy khóa học!";
+          console.error("API:", error?.response?.data);
 
-          toast.error(message);
+          const apiData = error?.response?.data;
+
+          let message = "";
+
+          if (typeof apiData === "string") {
+            message = apiData;
+          } else {
+            message = apiData?.content || apiData?.message || "";
+          }
+
+          console.log("CANCEL COURSE MESSAGE:", message);
+
+          // =================================================
+          // TRƯỜNG HỢP ĐẶC BIỆT:
+          // API TRẢ 500 NHƯNG KHÓA HỌC ĐÃ HỦY
+          // =================================================
+
+          const normalizedMessage = String(message).trim().toLowerCase();
+
+          if (normalizedMessage.includes("khóa học đã được hủy")) {
+            removeCourseFromMyCourses(course.maKhoaHoc);
+
+            return;
+          }
+
+          // =================================================
+          // CÁC LỖI THẬT SỰ
+          // =================================================
+
+          toast.error(message || "Không thể hủy khóa học!");
         },
       },
     );
   };
 
-  // =========================
+  // =====================================================
   // LOADING
-  // =========================
+  // =====================================================
+
   if (isLoading) {
     return (
       <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-5xl px-4 py-10">
+        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="animate-pulse">
-            <div className="h-8 w-56 rounded-lg bg-slate-200" />
-            <div className="mt-3 h-4 w-80 rounded bg-slate-200" />
+            {/* Header */}
+            <div className="h-5 w-32 rounded bg-slate-200" />
 
-            <div className="mt-8 h-14 rounded-xl bg-slate-200" />
+            <div className="mt-3 h-9 w-56 rounded-lg bg-slate-200" />
 
+            <div className="mt-3 h-4 w-80 max-w-full rounded bg-slate-200" />
+
+            {/* Search */}
+            <div className="mt-8 h-12 rounded-xl bg-slate-200" />
+
+            {/* Courses */}
             <div className="mt-6 space-y-3">
               {[1, 2, 3].map((item) => (
                 <div key={item} className="h-28 rounded-2xl bg-slate-200" />
@@ -192,10 +282,17 @@ export default function MyCoursesPage() {
     );
   }
 
+  // =====================================================
+  // PAGE
+  // =====================================================
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* ================= HEADER ================= */}
+        {/* =================================================
+            HEADER
+        ================================================= */}
+
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-600">
@@ -218,7 +315,10 @@ export default function MyCoursesPage() {
           </div>
         </div>
 
-        {/* ================= SEARCH ================= */}
+        {/* =================================================
+            SEARCH
+        ================================================= */}
+
         <div className="relative mt-7">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
 
@@ -231,9 +331,15 @@ export default function MyCoursesPage() {
           />
         </div>
 
-        {/* ================= CONTENT ================= */}
+        {/* =================================================
+            CONTENT
+        ================================================= */}
+
         <section className="mt-6">
-          {/* CHƯA CÓ KHÓA HỌC */}
+          {/* =================================================
+              CHƯA CÓ KHÓA HỌC
+          ================================================= */}
+
           {myCourses.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
@@ -257,7 +363,10 @@ export default function MyCoursesPage() {
               </Link>
             </div>
           ) : filteredCourses.length === 0 ? (
-            /* KHÔNG TÌM THẤY */
+            /* =================================================
+               KHÔNG TÌM THẤY
+            ================================================= */
+
             <div className="rounded-2xl border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
               <Search className="mx-auto h-8 w-8 text-slate-300" />
 
@@ -270,28 +379,40 @@ export default function MyCoursesPage() {
               </p>
 
               <button
+                type="button"
                 onClick={() => setKeyword("")}
-                className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Xóa tìm kiếm
               </button>
             </div>
           ) : (
-            /* ================= COURSE LIST ================= */
+            /* =================================================
+               COURSE LIST
+            ================================================= */
+
             <div className="space-y-3">
               {filteredCourses.map((course: any) => (
                 <article
                   key={course.maKhoaHoc}
                   className="group flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:flex-row sm:items-center"
                 >
-                  {/* IMAGE */}
+                  {/* =================================================
+                        IMAGE
+                    ================================================= */}
+
                   <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-xl bg-slate-100 sm:h-24 sm:w-40">
                     <img
                       src={getImageUrl(course.hinhAnh)}
-                      alt={course.tenKhoaHoc}
+                      alt={course.tenKhoaHoc || "Khóa học"}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                       onError={(e) => {
-                        e.currentTarget.src = "/images/course-placeholder.jpg";
+                        const img = e.currentTarget;
+
+                        // Tránh vòng lặp nếu placeholder
+                        if (!img.src.endsWith(PLACEHOLDER_IMAGE)) {
+                          img.src = PLACEHOLDER_IMAGE;
+                        }
                       }}
                     />
 
@@ -300,7 +421,10 @@ export default function MyCoursesPage() {
                     </span>
                   </div>
 
-                  {/* INFO */}
+                  {/* =================================================
+                        INFO
+                    ================================================= */}
+
                   <div className="min-w-0 flex-1 px-1">
                     <h2 className="line-clamp-1 text-base font-bold text-slate-900 transition group-hover:text-blue-600">
                       {course.tenKhoaHoc}
@@ -311,6 +435,7 @@ export default function MyCoursesPage() {
                     </p>
 
                     {/* PROGRESS */}
+
                     <div className="mt-4 max-w-md">
                       <div className="mb-1.5 flex items-center justify-between">
                         <span className="text-[11px] font-semibold text-slate-500">
@@ -328,7 +453,10 @@ export default function MyCoursesPage() {
                     </div>
                   </div>
 
-                  {/* ACTIONS */}
+                  {/* =================================================
+                        ACTIONS
+                    ================================================= */}
+
                   <div className="flex shrink-0 gap-2 sm:flex-col">
                     <Link
                       href={`/courses/${course.maKhoaHoc}`}
@@ -345,7 +473,9 @@ export default function MyCoursesPage() {
                       className="flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-500 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
+
                       <span className="sm:hidden">Hủy khóa học</span>
+
                       <span className="hidden sm:inline">Hủy</span>
                     </button>
                   </div>
@@ -355,7 +485,10 @@ export default function MyCoursesPage() {
           )}
         </section>
 
-        {/* FOOTER COUNT */}
+        {/* =================================================
+            FOOTER COUNT
+        ================================================= */}
+
         {filteredCourses.length > 0 && (
           <div className="mt-5 flex items-center justify-between text-xs text-slate-400">
             <span>
@@ -364,6 +497,7 @@ export default function MyCoursesPage() {
 
             {keyword && (
               <button
+                type="button"
                 onClick={() => setKeyword("")}
                 className="font-semibold text-blue-600 hover:text-blue-700"
               >
@@ -374,6 +508,10 @@ export default function MyCoursesPage() {
         )}
       </div>
 
+      {/* =====================================================
+          CONFIRM CANCEL MODAL
+      ===================================================== */}
+
       {courseToCancel && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[2px]">
           <div
@@ -382,10 +520,15 @@ export default function MyCoursesPage() {
             aria-labelledby="cancel-course-title"
             className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
           >
+            {/* =================================================
+                MODAL HEADER
+            ================================================= */}
+
             <div className="flex items-center gap-4 border-b border-slate-100 px-6 py-5">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500">
                 <AlertTriangle className="h-6 w-6" />
               </div>
+
               <div>
                 <h2
                   id="cancel-course-title"
@@ -393,11 +536,16 @@ export default function MyCoursesPage() {
                 >
                   Hủy khóa học?
                 </h2>
+
                 <p className="mt-0.5 text-xs text-slate-500">
                   Xác nhận trước khi thay đổi danh sách học tập
                 </p>
               </div>
             </div>
+
+            {/* =================================================
+                MODAL CONTENT
+            ================================================= */}
 
             <div className="px-6 py-5">
               <p className="text-sm leading-6 text-slate-600">
@@ -407,19 +555,26 @@ export default function MyCoursesPage() {
                 </strong>
                 .
               </p>
+
               <p className="mt-2 text-xs leading-5 text-slate-400">
                 Bạn có thể đăng ký lại khóa học này sau.
               </p>
             </div>
 
+            {/* =================================================
+                MODAL ACTIONS
+            ================================================= */}
+
             <div className="flex gap-3 bg-slate-50 px-6 py-4">
               <button
                 type="button"
                 onClick={() => setCourseToCancel(null)}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
+                disabled={cancelEnrollment.isPending}
+                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Giữ lại
               </button>
+
               <button
                 type="button"
                 onClick={confirmCancelCourse}
