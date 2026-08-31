@@ -13,6 +13,9 @@ const beVietnamPro = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   title: "VLearning",
   description: "Học tập trực tuyến",
+  icons: {
+    icon: "/logoV.svg", // <-- THÊM DÒNG NÀY ĐỂ GỌI LOGO
+  },
 };
 
 export default function RootLayout({
