@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Search, Menu, User, LogOut, Shield, BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -172,9 +173,15 @@ export default function Header() {
           href="/"
           className="flex min-w-[230px] items-center gap-3 transition hover:opacity-90"
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 text-2xl font-bold text-white shadow-lg">
-            V
-          </div>
+          {/* ĐÃ THAY BẰNG ẢNH LOGOV.SVG CỦA BẠN */}
+          <Image 
+            src="/logoV.svg" 
+            alt="VLearning Logo" 
+            width={48} 
+            height={48} 
+            className="h-12 w-12 object-contain"
+            priority
+          />
 
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
@@ -291,16 +298,18 @@ export default function Header() {
 
                 <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-white shadow">
                   {avatar ? (
-                    <img
+                    <Image
                       src={avatar}
                       alt={user.hoTen || "Avatar"}
+                      width={48}
+                      height={48}
                       className="h-full w-full object-cover"
+                      unoptimized // Thêm cờ này để Next.js không cố nén ảnh từ nguồn bên ngoài (như Base64)
                       onError={(e) => {
+                        // Ẩn ảnh lỗi đi
                         e.currentTarget.style.display = "none";
-
-                        const fallback = e.currentTarget
-                          .nextElementSibling as HTMLDivElement | null;
-
+                        // Hiện chữ cái mặc định lên
+                        const fallback = e.currentTarget.nextElementSibling as HTMLDivElement | null;
                         if (fallback) {
                           fallback.style.display = "flex";
                         }
@@ -308,8 +317,7 @@ export default function Header() {
                     />
                   ) : null}
 
-                  {/* FALLBACK */}
-
+                  {/* FALLBACK (Chữ cái đầu tiên) */}
                   <div
                     className={`${
                       avatar ? "hidden" : "flex"
