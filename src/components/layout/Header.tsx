@@ -247,7 +247,9 @@ export default function Header() {
           {/* BLOG */}
 
           <Link
-            href="/blog"
+            href="https://cybersoft.edu.vn/"
+            target="_blank"
+            rel="noreferrer"
             className="font-semibold text-gray-700 transition hover:text-blue-600"
           >
             Blog
