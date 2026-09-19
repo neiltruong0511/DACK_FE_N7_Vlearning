@@ -33,7 +33,7 @@ export default function CourseList() {
             🚀 Học tập không giới hạn
           </span>
 
-          <h2 className="mt-6 text-5xl font-bold leading-tight text-slate-900">
+          <h2 className="mt-6 text-3xl font-bold leading-tight text-slate-900 sm:text-5xl">
             Khám phá những
             <span className="block text-blue-600">khóa học nổi bật</span>
           </h2>

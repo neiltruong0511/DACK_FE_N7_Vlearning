@@ -182,7 +182,7 @@ function SearchContent() {
   // =====================================================
 
   return (
-    <section className="mx-auto max-w-7xl px-6 py-12">
+    <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
       {/* =================================================
           HERO
       ================================================= */}
@@ -193,7 +193,7 @@ function SearchContent() {
           CONTENT
       ================================================= */}
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[280px_1fr]">
+      <div className="mt-8 grid gap-6 sm:mt-10 sm:gap-10 lg:grid-cols-[280px_1fr]">
         {/* =================================================
             SIDEBAR
         ================================================= */}
