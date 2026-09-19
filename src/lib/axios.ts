@@ -10,6 +10,13 @@ export const axiosClient = axios.create({
 
 axiosClient.interceptors.request.use(
   (config) => {
+    if (
+      typeof FormData !== "undefined" &&
+      config.data instanceof FormData
+    ) {
+      delete config.headers["Content-Type"];
+    }
+
     if (typeof window !== "undefined") {
       const token = sessionStorage.getItem("ACCESS_TOKEN");
 

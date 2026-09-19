@@ -136,6 +136,27 @@ const emptyForm: CourseForm = {
   taiKhoanNguoiTao: "",
 };
 
+const formatDateForApi = (value?: string) => {
+  const dateValue = value?.trim() || "";
+  const vietnameseDate = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+
+  if (vietnameseDate) {
+    return `${vietnameseDate[1]}/${vietnameseDate[2]}/${vietnameseDate[3]}`;
+  }
+
+  const isoDate = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+  if (isoDate) {
+    return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+  }
+
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+
+  return `${day}/${month}/${now.getFullYear()}`;
+};
+
 /* =========================================================
    COMPONENT
 ========================================================= */
@@ -177,6 +198,10 @@ export default function AdminCoursesPage() {
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState<CourseForm>(emptyForm);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const [imagePreview, setImagePreview] = useState("");
 
   /* =========================================================
      ENROLLMENT
@@ -291,6 +316,18 @@ export default function AdminCoursesPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreview("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImagePreview(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [imageFile]);
+
   /* =========================================================
      CATEGORY NAME
   ========================================================= */
@@ -395,6 +432,8 @@ export default function AdminCoursesPage() {
 
   const resetForm = () => {
     setEditing(null);
+    setImageFile(null);
+    setImagePreview("");
 
     setForm({
       ...emptyForm,
@@ -472,6 +511,10 @@ export default function AdminCoursesPage() {
   ========================================================= */
 
   const updateField = (field: keyof CourseForm, value: string) => {
+    if (field === "hinhAnh" && value.trim()) {
+      setImageFile(null);
+    }
+
     setForm((prev) => ({
       ...prev,
       [field]: value,
@@ -544,7 +587,7 @@ export default function AdminCoursesPage() {
        * Khi edit -> giữ ngày tạo cũ.
        * Khi add -> tạo ngày hiện tại.
        */
-      const ngayTao = editing?.ngayTao || new Date().toISOString();
+      const ngayTao = formatDateForApi(editing?.ngayTao);
 
       /*
        * PAYLOAD ĐÚNG THEO SCHEMA API
@@ -581,19 +624,37 @@ export default function AdminCoursesPage() {
 
       console.log("PAYLOAD:", JSON.stringify(payload, null, 2));
 
+      const uploadPayload = new FormData();
+
+      Object.entries(payload).forEach(([key, value]) => {
+        uploadPayload.append(key, String(value));
+      });
+
+      if (imageFile) {
+        uploadPayload.append("frm", imageFile);
+      }
+
       /* =========================
        UPDATE
     ========================= */
 
       if (editing) {
-        await courseApi.updateCourse(payload);
+        if (imageFile) {
+          await courseApi.updateCourseWithImage(uploadPayload);
+        } else {
+          await courseApi.updateCourse(payload);
+        }
 
         toast.success(`Cập nhật khóa học "${form.tenKhoaHoc}" thành công!`);
       } else {
         /* =========================
        ADD
     ========================= */
-        await courseApi.addCourse(payload);
+        if (imageFile) {
+          await courseApi.addCourseWithImage(uploadPayload);
+        } else {
+          await courseApi.addCourse(payload);
+        }
 
         toast.success(`Thêm khóa học "${form.tenKhoaHoc}" thành công!`);
       }
@@ -605,6 +666,8 @@ export default function AdminCoursesPage() {
       setModalOpen(false);
 
       setEditing(null);
+      setImageFile(null);
+      setImagePreview("");
 
       setForm({
         ...emptyForm,
@@ -1171,10 +1234,39 @@ export default function AdminCoursesPage() {
                   placeholder="https://..."
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-[#58a99e] focus:ring-2 focus:ring-[#58a99e]/10 disabled:bg-slate-100"
                 />
-                {form.hinhAnh.trim() && (
+                <span className="mt-1.5 block text-xs font-normal text-slate-400">
+                  Dùng URL đầy đủ, ví dụ: https://elearningnew.cybersoft.edu.vn/hinhanh/ten-anh.png
+                </span>
+              </label>
+
+              <label className="text-sm font-semibold text-slate-600 sm:col-span-2">
+                Hoặc chọn ảnh từ máy
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  disabled={saving}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setImageFile(file);
+
+                    if (file) {
+                      setForm((prev) => ({ ...prev, hinhAnh: "" }));
+                    }
+                  }}
+                  className="mt-1.5 block w-full cursor-pointer rounded-xl border border-dashed border-slate-300 bg-[#f8faf9] px-3 py-3 text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-[#e6f4f1] file:px-3 file:py-2 file:font-semibold file:text-[#237c73] hover:border-[#58a99e] disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <span className="mt-1.5 block text-xs font-normal text-slate-400">
+                  Hỗ trợ PNG, JPG và WEBP. Ảnh sẽ được gửi lên máy chủ khi bấm lưu.
+                </span>
+                {imageFile && (
+                  <p className="mt-1 text-xs font-medium text-[#237c73]">
+                    Đã chọn: {imageFile.name}
+                  </p>
+                )}
+                {(imageFile || form.hinhAnh.trim()) && (
                   <div className="mt-2 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-[#f7faf9]">
                     <img
-                      src={getImageUrl(form.hinhAnh)}
+                      src={imagePreview || getImageUrl(form.hinhAnh)}
                       alt="Xem trước hình ảnh khóa học"
                       className="h-full w-full object-cover"
                       onError={(event) => {

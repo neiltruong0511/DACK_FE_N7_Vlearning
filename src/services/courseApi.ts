@@ -162,9 +162,7 @@ export const courseApi = {
       "/QuanLyKhoaHoc/UploadHinhAnhKhoaHoc",
       data,
       {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: {},
       },
     );
   },
@@ -177,9 +175,7 @@ export const courseApi = {
       "/QuanLyKhoaHoc/ThemKhoaHocUploadHinh",
       data,
       {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: {},
       },
     );
   },
@@ -192,9 +188,7 @@ export const courseApi = {
       "/QuanLyKhoaHoc/CapNhatKhoaHocUpload",
       data,
       {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: {},
       },
     );
   },
