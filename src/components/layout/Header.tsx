@@ -30,7 +30,7 @@ export default function Header() {
   useEffect(() => {
     const loadUser = () => {
       try {
-        const userInfo = localStorage.getItem("USER_INFO");
+        const userInfo = sessionStorage.getItem("USER_INFO");
 
         // ==========================================
         // CHƯA ĐĂNG NHẬP
@@ -59,7 +59,7 @@ export default function Header() {
         if (parsedUser.taiKhoan) {
           const avatarKey = `AVATAR_${parsedUser.taiKhoan}`;
 
-          const savedAvatar = localStorage.getItem(avatarKey);
+          const savedAvatar = sessionStorage.getItem(avatarKey);
 
           setAvatar(savedAvatar || "");
         } else {
@@ -119,14 +119,14 @@ export default function Header() {
     // XÓA PHIÊN ĐĂNG NHẬP
     // ==========================================
 
-    localStorage.removeItem("ACCESS_TOKEN");
-    localStorage.removeItem("USER_INFO");
+    sessionStorage.removeItem("ACCESS_TOKEN");
+    sessionStorage.removeItem("USER_INFO");
 
     // ==========================================
     // 🔥 XÓA TOÀN BỘ KHÓA HỌC YÊU THÍCH
     // ==========================================
 
-    localStorage.removeItem("FAVORITE_COURSES");
+    sessionStorage.removeItem("FAVORITE_COURSES");
 
     // ==========================================
     // CẬP NHẬT HEADER NGAY LẬP TỨC

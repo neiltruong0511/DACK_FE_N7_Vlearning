@@ -159,7 +159,7 @@ export default function LoginForm() {
       /*
        * Lấy user cũ để giữ avatar
        */
-      const oldUserJSON = localStorage.getItem("USER_INFO");
+      const oldUserJSON = sessionStorage.getItem("USER_INFO");
 
       let oldUser = null;
 

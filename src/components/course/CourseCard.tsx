@@ -48,7 +48,7 @@ export default function CourseCard({ course }: CourseCardProps) {
     }
 
     // Lấy user hiện tại
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     // Chưa đăng nhập
     if (!userInfo) {
@@ -113,7 +113,7 @@ export default function CourseCard({ course }: CourseCardProps) {
     // KIỂM TRA USER
     // =======================================================
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     // =======================================================
     // CHƯA ĐĂNG NHẬP

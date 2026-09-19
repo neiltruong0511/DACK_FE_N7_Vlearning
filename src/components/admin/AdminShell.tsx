@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   BarChart3,
   BookOpen,
@@ -65,8 +66,14 @@ export default function AdminShell({
             className="flex items-center gap-3"
             onClick={() => setOpen(false)}
           >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#e4c77b] text-xl font-black text-[#123b3a]">
-              V
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white p-1.5">
+              <Image
+                src="/logoV.svg"
+                alt="VLearning"
+                width={48}
+                height={48}
+                className="h-full w-full object-contain"
+              />
             </span>
             <span>
               <strong className="block text-lg tracking-tight">

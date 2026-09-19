@@ -69,7 +69,7 @@ export default function CourseDetail({ courseId }: Props) {
   useEffect(() => {
     if (!course?.maKhoaHoc) return;
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     if (!userInfo) {
       setIsFavorite(false);
@@ -150,7 +150,7 @@ export default function CourseDetail({ courseId }: Props) {
       return;
     }
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     // -------------------------------------------------------
     // CHƯA LOGIN
@@ -180,7 +180,7 @@ export default function CourseDetail({ courseId }: Props) {
         },
         {
           onSuccess: () => {
-            const stored = localStorage.getItem("MY_COURSES");
+            const stored = sessionStorage.getItem("MY_COURSES");
 
             const myCourses: string[] = stored
               ? JSON.parse(stored)
@@ -190,7 +190,7 @@ export default function CourseDetail({ courseId }: Props) {
               myCourses.push(course.maKhoaHoc);
             }
 
-            localStorage.setItem(
+            sessionStorage.setItem(
               "MY_COURSES",
               JSON.stringify(myCourses),
             );
@@ -232,7 +232,7 @@ export default function CourseDetail({ courseId }: Props) {
   const handleFavorite = () => {
     if (!course?.maKhoaHoc) return;
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     // -------------------------------------------------------
     // CHƯA LOGIN

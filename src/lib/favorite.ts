@@ -9,7 +9,7 @@ function getCurrentAccount(): string | null {
   }
 
   try {
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     if (!userInfo) {
       return null;
@@ -57,7 +57,7 @@ export function getFavoriteCourses(): string[] {
   }
 
   try {
-    const stored = localStorage.getItem(key);
+    const stored = sessionStorage.getItem(key);
 
     if (!stored) {
       return [];
@@ -101,7 +101,7 @@ export function addFavoriteCourse(
       maKhoaHoc,
     ];
 
-    localStorage.setItem(
+    sessionStorage.setItem(
       key,
       JSON.stringify(updated),
     );
@@ -126,7 +126,7 @@ export function removeFavoriteCourse(
     (id) => id !== maKhoaHoc,
   );
 
-  localStorage.setItem(
+  sessionStorage.setItem(
     key,
     JSON.stringify(updated),
   );

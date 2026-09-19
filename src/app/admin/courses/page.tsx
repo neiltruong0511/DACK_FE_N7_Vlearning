@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { getImageUrl } from "@/lib/image";
+import { FALLBACK_IMAGE_URL, getImageUrl } from "@/lib/image";
 import {
   Edit3,
   ImagePlus,
@@ -207,7 +207,7 @@ export default function AdminCoursesPage() {
     }
 
     try {
-      const userInfo = localStorage.getItem("USER_INFO");
+      const userInfo = sessionStorage.getItem("USER_INFO");
 
       if (!userInfo) {
         return "";
@@ -916,6 +916,10 @@ export default function AdminCoursesPage() {
                               src={getImageUrl(course.hinhAnh)}
                               alt={course.tenKhoaHoc || "Khóa học"}
                               className="h-full w-full object-cover"
+                              onError={(event) => {
+                                event.currentTarget.onerror = null;
+                                event.currentTarget.src = FALLBACK_IMAGE_URL;
+                              }}
                             />
                           ) : (
                             <ImagePlus className="h-5 w-5" />
@@ -1167,6 +1171,19 @@ export default function AdminCoursesPage() {
                   placeholder="https://..."
                   className="mt-1.5 w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-[#58a99e] focus:ring-2 focus:ring-[#58a99e]/10 disabled:bg-slate-100"
                 />
+                {form.hinhAnh.trim() && (
+                  <div className="mt-2 flex h-32 items-center justify-center overflow-hidden rounded-xl bg-[#f7faf9]">
+                    <img
+                      src={getImageUrl(form.hinhAnh)}
+                      alt="Xem trước hình ảnh khóa học"
+                      className="h-full w-full object-cover"
+                      onError={(event) => {
+                        event.currentTarget.onerror = null;
+                        event.currentTarget.src = FALLBACK_IMAGE_URL;
+                      }}
+                    />
+                  </div>
+                )}
               </label>
 
               {/* DESCRIPTION */}
