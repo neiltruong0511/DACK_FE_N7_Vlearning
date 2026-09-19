@@ -33,7 +33,7 @@ export default function MyCoursesPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const stored = localStorage.getItem("MY_COURSES");
+    const stored = sessionStorage.getItem("MY_COURSES");
 
     if (!stored) {
       setMyCourseIds([]);
@@ -107,7 +107,7 @@ export default function MyCoursesPage() {
   };
 
   // =====================================================
-  // XÓA KHÓA HỌC KHỎI LOCALSTORAGE
+  // XÓA KHÓA HỌC KHỎI SESSION STORAGE
   // =====================================================
 
   const removeCourseFromMyCourses = (courseId: string) => {
@@ -116,7 +116,7 @@ export default function MyCoursesPage() {
     setMyCourseIds((prev) => {
       const updatedCourses = prev.filter((id) => id !== courseId);
 
-      localStorage.setItem("MY_COURSES", JSON.stringify(updatedCourses));
+      sessionStorage.setItem("MY_COURSES", JSON.stringify(updatedCourses));
 
       return updatedCourses;
     });
@@ -133,7 +133,7 @@ export default function MyCoursesPage() {
   const handleCancelCourse = (course: any) => {
     if (typeof window === "undefined") return;
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     if (!userInfo) {
       toast.error("Vui lòng đăng nhập lại!");
@@ -168,7 +168,7 @@ export default function MyCoursesPage() {
 
     if (typeof window === "undefined") return;
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     if (!userInfo) {
       setCourseToCancel(null);

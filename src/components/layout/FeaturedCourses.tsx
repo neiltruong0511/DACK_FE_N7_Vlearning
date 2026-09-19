@@ -71,7 +71,7 @@ export default function FeaturedCourses() {
     // ĐÃ LOGIN
     // -------------------------------------------------------
 
-    const stored = localStorage.getItem("FAVORITE_COURSES");
+    const stored = sessionStorage.getItem("FAVORITE_COURSES");
 
     if (!stored) {
       setFavoriteIds([]);
@@ -169,7 +169,7 @@ export default function FeaturedCourses() {
     // KIỂM TRA USER
     // -------------------------------------------------------
 
-    const userInfo = localStorage.getItem("USER_INFO");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     // -------------------------------------------------------
     // CHƯA LOGIN

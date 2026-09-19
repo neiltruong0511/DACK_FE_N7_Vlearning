@@ -77,7 +77,7 @@ export default function CoursesPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const stored = localStorage.getItem("FAVORITE_COURSES");
+    const stored = sessionStorage.getItem("FAVORITE_COURSES");
 
     if (!stored) {
       setFavoriteIds([]);
@@ -106,8 +106,8 @@ export default function CoursesPage() {
       return false;
     }
 
-    const token = localStorage.getItem("ACCESS_TOKEN");
-    const userInfo = localStorage.getItem("USER_INFO");
+    const token = sessionStorage.getItem("ACCESS_TOKEN");
+    const userInfo = sessionStorage.getItem("USER_INFO");
 
     return !!token && !!userInfo;
   };

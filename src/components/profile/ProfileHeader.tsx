@@ -27,7 +27,7 @@ export default function ProfileHeader() {
   // =========================
   useEffect(() => {
     const loadUser = () => {
-      const userInfo = localStorage.getItem("USER_INFO");
+      const userInfo = sessionStorage.getItem("USER_INFO");
 
       if (!userInfo) {
         setUser(null);
@@ -41,7 +41,7 @@ export default function ProfileHeader() {
 
       // Avatar riêng theo tài khoản
       const avatarKey = `AVATAR_${currentUser.taiKhoan}`;
-      const savedAvatar = localStorage.getItem(avatarKey);
+      const savedAvatar = sessionStorage.getItem(avatarKey);
 
       setAvatar(savedAvatar || "");
     };
@@ -85,7 +85,7 @@ export default function ProfileHeader() {
       // =========================
       const avatarKey = `AVATAR_${user.taiKhoan}`;
 
-      localStorage.setItem(avatarKey, avatarUrl);
+      sessionStorage.setItem(avatarKey, avatarUrl);
 
       // Cập nhật state
       setAvatar(avatarUrl);
@@ -98,7 +98,7 @@ export default function ProfileHeader() {
 
       setUser(updatedUser);
 
-      localStorage.setItem("USER_INFO", JSON.stringify(updatedUser));
+      sessionStorage.setItem("USER_INFO", JSON.stringify(updatedUser));
 
       // Báo Header cập nhật
       window.dispatchEvent(new Event("userUpdated"));
@@ -119,7 +119,7 @@ export default function ProfileHeader() {
     const avatarKey = `AVATAR_${user.taiKhoan}`;
 
     // Xóa avatar của đúng tài khoản
-    localStorage.removeItem(avatarKey);
+    sessionStorage.removeItem(avatarKey);
 
     // Xóa state
     setAvatar("");
@@ -132,7 +132,7 @@ export default function ProfileHeader() {
 
     setUser(updatedUser);
 
-    localStorage.setItem("USER_INFO", JSON.stringify(updatedUser));
+    sessionStorage.setItem("USER_INFO", JSON.stringify(updatedUser));
 
     window.dispatchEvent(new Event("userUpdated"));
   };
