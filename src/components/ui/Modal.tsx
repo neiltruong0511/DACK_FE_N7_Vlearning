@@ -41,8 +41,8 @@ export default function Modal({
       <div
         className={`relative flex max-h-[90vh] w-full ${maxWidth} flex-col overflow-hidden rounded-2xl bg-white shadow-2xl`}
       >
-        <div className="flex items-center justify-between border-b border-slate-100 bg-[#f5f8f8] px-6 py-4">
-          <h3 className="text-lg font-bold text-[#123b3a]">{title}</h3>
+        <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-[#f5f8f8] px-4 py-3 sm:px-6 sm:py-4">
+          <h3 className="min-w-0 text-base font-bold text-[#123b3a] sm:text-lg">{title}</h3>
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-900"
@@ -51,7 +51,7 @@ export default function Modal({
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6">{children}</div>
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
       </div>
     </div>
   );

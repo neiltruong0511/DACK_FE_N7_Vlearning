@@ -135,7 +135,7 @@ export default function AdminShell({
       </aside>
 
       <main className="min-h-screen lg:pl-72">
-        <div className="mx-auto max-w-[1500px] px-5 py-8 sm:px-8 lg:px-10">
+        <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
           {children}
         </div>
       </main>

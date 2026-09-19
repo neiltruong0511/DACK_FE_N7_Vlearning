@@ -22,6 +22,7 @@ export default function Header() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [avatar, setAvatar] = useState("");
   const [openMenu, setOpenMenu] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // =====================================================
   // LOAD USER + AVATAR
@@ -164,14 +165,14 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200/70 bg-white/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-20 max-w-[1400px] items-center gap-8 px-8">
+      <div className="mx-auto flex min-h-20 max-w-[1400px] flex-wrap items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6 sm:py-2 lg:flex-nowrap lg:gap-8 lg:px-8 lg:py-0">
         {/* =====================================================
             LOGO
         ===================================================== */}
 
         <Link
           href="/"
-          className="flex min-w-[230px] items-center gap-3 transition hover:opacity-90"
+          className="flex min-w-0 flex-1 items-center gap-2 transition hover:opacity-90 sm:gap-3 lg:min-w-[230px] lg:flex-none"
         >
           {/* ĐÃ THAY BẰNG ẢNH LOGOV.SVG CỦA BẠN */}
           <Image 
@@ -179,16 +180,16 @@ export default function Header() {
             alt="VLearning Logo" 
             width={48} 
             height={48} 
-            className="h-12 w-12 object-contain"
+            className="h-10 w-10 object-contain sm:h-12 sm:w-12"
             priority
           />
 
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+              <h1 className="text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
               VLearning
             </h1>
 
-            <p className="-mt-1 text-sm text-gray-500">
+            <p className="-mt-1 hidden text-sm text-gray-500 sm:block">
               Learn. Practice. Success.
             </p>
           </div>
@@ -431,10 +432,52 @@ export default function Header() {
 
         <button
           type="button"
+          onClick={() => setMobileMenuOpen((previous) => !previous)}
+          aria-label="Mở menu điều hướng"
+          aria-expanded={mobileMenuOpen}
           className="rounded-xl p-2 transition hover:bg-gray-100 lg:hidden"
         >
           <Menu size={28} />
         </button>
+
+        {mobileMenuOpen && (
+          <div className="order-3 basis-full border-t border-gray-100 pt-3 lg:hidden">
+            <form onSubmit={handleSearch} className="mb-3 flex">
+              <input
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Tìm kiếm khóa học..."
+                className="min-w-0 flex-1 rounded-l-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              />
+              <button
+                type="submit"
+                aria-label="Tìm kiếm"
+                className="rounded-r-xl bg-blue-600 px-4 text-white"
+              >
+                <Search size={18} />
+              </button>
+            </form>
+
+            <nav className="grid gap-1 pb-1 text-sm font-semibold text-gray-700 sm:grid-cols-3">
+              <Link href="/courses" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600">
+                Khóa học
+              </Link>
+              <Link href="https://cybersoft.edu.vn/" target="_blank" rel="noreferrer" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600">
+                Blog
+              </Link>
+              {!user && (
+                <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600">
+                  Đăng nhập
+                </Link>
+              )}
+              {user && (
+                <Link href="/profile" onClick={() => setMobileMenuOpen(false)} className="rounded-xl px-3 py-2.5 hover:bg-blue-50 hover:text-blue-600">
+                  Hồ sơ cá nhân
+                </Link>
+              )}
+            </nav>
+          </div>
+        )}
       </div>
     </header>
   );

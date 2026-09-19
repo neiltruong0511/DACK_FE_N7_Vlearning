@@ -18,7 +18,7 @@ export default function CategoryDropdown() {
         group-hover:opacity-100
       "
     >
-      <div className="mt-4 w-80 overflow-hidden rounded-3xl border border-slate-200 bg-white py-3 shadow-[0_20px_60px_rgba(15,23,42,.12)]">
+      <div className="mt-4 w-[min(20rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-slate-200 bg-white py-3 shadow-[0_20px_60px_rgba(15,23,42,.12)]">
         {/* Loading */}
         {isLoading && (
           <div className="px-5 py-8 text-center text-sm text-slate-500">

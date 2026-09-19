@@ -52,7 +52,7 @@ export default function CourseStats() {
                 <Icon className="text-blue-600" size={34} />
               </div>
 
-              <h2 className="mt-8 text-center text-5xl font-black text-blue-600">
+              <h2 className="mt-8 text-center text-3xl font-black text-blue-600 sm:text-5xl">
                 {inView ? (
                   <CountUp
                     end={item.number}
